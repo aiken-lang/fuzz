@@ -1,0 +1,14 @@
+name = "waalge/fuzz"
+version = "0.0.0"
+license = "Apache-2.0"
+description = "Fuzzing in Aiken"
+
+[repository]
+user = "waalge"
+project = "fuzz"
+platform = "github"
+
+[[dependencies]]
+name = "aiken-lang/stdlib"
+version = "1.7.0"
+source = "github"

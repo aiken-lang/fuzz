@@ -1,0 +1,14 @@
+{
+  "preamble": {
+    "title": "waalge/fuzz",
+    "description": "Fuzzing in Aiken",
+    "version": "0.0.0",
+    "plutusVersion": "v2",
+    "compiler": {
+      "name": "Aiken",
+      "version": "v1.0.21-alpha+unknown"
+    },
+    "license": "Apache-2.0"
+  },
+  "validators": []
+}
