@@ -1,4 +1,3 @@
-
 pub type Seed {
   size: Int,
   seed: Int,
@@ -6,4 +5,3 @@ pub type Seed {
 
 pub type Fuzz<a> =
   fn(Seed) -> (a, Seed)
-
