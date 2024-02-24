@@ -12,8 +12,18 @@ pub type Seed {
   size: Int,
 }
 
+/// For testing purposes only
+pub fn def_seed() {
+  Seed { size : 1, seed: 42 } 
+}
+
 pub type Fuzzer<a> =
   fn(Seed) -> (Seed, a)
+
+/// Create a size sensitive fuzzer
+pub fn sized(callback: fn(Int) -> Fuzzer<a>) -> Fuzzer<a> {
+  fn(seed: Seed) { callback(seed.size)(seed) }
+}
 
 ///
 pub fn constant(a: a) -> Fuzzer<a> {
@@ -63,47 +73,33 @@ pub fn map3(
     |> and_map(fuzz_a2)
 }
 
-/// Generate int values within [-2^32; 2^32 - 1]
-pub fn int() -> Fuzzer<Int> {
-  fn(s: Seed) {
-    let sign = s.seed % 2 == 0
-    let val = bytearray_to_int(builtin.blake2b_256(int_to_bytearray(s.seed)))
-    (
-      step_seed(s),
-      if sign {
-        val
-      } else {
-        -val - 1
-      },
-    )
-  }
+/// Generate int values within [ 0 ; 2^256 - 1]
+pub fn u256() -> Fuzzer<Int> {
+  fn(s: Seed) { (step(s), s.seed) }
 }
 
-const u64 = 18446744073709551615
+const u256_max = 115792089237316195423570985008687907853269984665640564039457584007913129639935
 
-// 2^64
-
+/// Bounds inclusive
+/// Cannot handle ranges > u256_max
+/// There is a slight bias from using modulo. 
 pub fn int_range(lo: Int, hi: Int) -> Fuzzer<Int> {
-  // Bigger numbers ranges more entropy 
   let range = hi - lo
-  expect and {
-      range > 0,
-      range <= u64,
-    }
-  map(
-    fn(
-      /// Bounds inclusive
-      x,
-    ) {
-      x % ( 1 + hi - lo ) + lo
-    },
-    int(),
-  )
+  expect range >= 0
+  expect range <=  u256_max
+  map(fn(x) { x % ( 1 + hi - lo ) + lo }, u256())
+}
+
+/// TODO use more sensible sizes
+pub fn any_int() -> Fuzzer<Int> {
+  sized(fn(size: Int) {
+    int_range(-pow2(size), pow2(size))
+  })
 }
 
 /// Generate bytearrays of 32 bytes
 pub fn bytearray() -> Fuzzer<ByteArray> {
-  fn(s: Seed) { (step_seed(s), builtin.blake2b_256(int_to_bytearray(s.seed))) }
+  fn(s: Seed) { (step(s), builtin.blake2b_256(int_to_bytearray(s.seed))) }
 }
 
 pub fn bytearray_fixed(len: Int) -> Fuzzer<ByteArray> {
@@ -130,43 +126,22 @@ pub fn string() -> Fuzzer<string> {
   todo
 }
 
-// Helpful additions
-// The choice of signature follows that of elm-test: 
-// the least worst way to handle an empty list
-pub fn one_of(default: a, l: List<a>) -> Fuzzer<a> {
-  let len = list.length(l)
-  map(
-    fn(n: Int) {
-      if n == 0 {
-        default
-      } else {
-        // This is safe. Promise
-        expect Some(item) = list.at(l, n - 1)
-        item
-      }
-    },
-    int_range(0, len),
-  )
-}
-
 pub fn choose(opt_0: Fuzzer<a>, opt_1: Fuzzer<a>) -> Fuzzer<a> {
   and_then(
     fn(x) {
-      let n_opts = 2
-      let idx = x % n_opts
-      if idx == 0 {
+      if x == 0 {
         opt_0
       } else {
         opt_1
       }
     },
-    int(),
+    int_range(0,1),
   )
 }
 
 // Internal
 
-fn step_seed(s: Seed) -> Seed {
+fn step(s: Seed) -> Seed {
   let Seed { size, seed } = s
   Seed { size, seed: step_pos_int(seed) }
 }

@@ -35,11 +35,16 @@ pub fn pool_id() -> fuzz.Fuzzer<t.PoolId> {
   hash.blake2b_224()
 }
 
-pub fn default_referenced(fuzz_a: fuzz.Fuzzer<a>) -> fuzz.Fuzzer<t.Referenced<a>> {
+pub fn default_referenced(
+  fuzz_a: fuzz.Fuzzer<a>,
+) -> fuzz.Fuzzer<t.Referenced<a>> {
   fuzz.choose(inline(fuzz_a), default_pointer())
 }
 
-pub fn referenced(pointer: fuzz.Fuzzer<t.Referenced<a>>, fuzz_a: fuzz.Fuzzer<a>) -> fuzz.Fuzzer<t.Referenced<a>> {
+pub fn referenced(
+  pointer: fuzz.Fuzzer<t.Referenced<a>>,
+  fuzz_a: fuzz.Fuzzer<a>,
+) -> fuzz.Fuzzer<t.Referenced<a>> {
   fuzz.choose(inline(fuzz_a), pointer)
 }
 
@@ -48,10 +53,11 @@ pub fn inline(fuzz_a: fuzz.Fuzzer<a>) -> fuzz.Fuzzer<t.Referenced<a>> {
 }
 
 pub fn default_pointer() -> fuzz.Fuzzer<t.Referenced<a>> {
-  fuzz.map3(fn (slot_number, transaction_index, certificate_index) {
-    t.Pointer { slot_number, transaction_index, certificate_index }
-  }, 
-    fuzz.int_range(0, 999_999_999_999), 
+  fuzz.map3(
+    fn(slot_number, transaction_index, certificate_index) {
+      t.Pointer { slot_number, transaction_index, certificate_index }
+    },
+    fuzz.int_range(0, 999_999_999_999),
     fuzz.int_range(0, 1_000),
     fuzz.int_range(0, 1_000),
   )
@@ -59,13 +65,14 @@ pub fn default_pointer() -> fuzz.Fuzzer<t.Referenced<a>> {
 
 /// FIXME : the ranges should be configurable?
 pub fn pointer(
-    fuzz_slot_number : fuzz.Fuzzer<Int>,
-    fuzz_transaction_index : fuzz.Fuzzer<Int>,
-    fuzz_certificate_index : fuzz.Fuzzer<Int>,
+  fuzz_slot_number: fuzz.Fuzzer<Int>,
+  fuzz_transaction_index: fuzz.Fuzzer<Int>,
+  fuzz_certificate_index: fuzz.Fuzzer<Int>,
 ) -> fuzz.Fuzzer<t.Referenced<a>> {
-  fuzz.map3(fn (slot_number, transaction_index, certificate_index) {
-    t.Pointer { slot_number, transaction_index, certificate_index }
-  }, 
+  fuzz.map3(
+    fn(slot_number, transaction_index, certificate_index) {
+      t.Pointer { slot_number, transaction_index, certificate_index }
+    },
     fuzz_slot_number,
     fuzz_transaction_index,
     fuzz_certificate_index,
@@ -84,7 +91,10 @@ pub fn defaut_stake_credential() -> fuzz.Fuzzer<t.StakeCredential> {
   default_referenced(credential())
 }
 
-pub fn stake_credential(referenced : fn(fuzz.Fuzzer<t.Credential>) -> fuzz.Fuzzer<t.Referenced<t.Credential>>) -> fuzz.Fuzzer<t.StakeCredential> {
+pub fn stake_credential(
+  referenced: fn(fuzz.Fuzzer<t.Credential>) ->
+    fuzz.Fuzzer<t.Referenced<t.Credential>>,
+) -> fuzz.Fuzzer<t.StakeCredential> {
   referenced(credential())
 }
 
