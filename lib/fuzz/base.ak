@@ -1,6 +1,6 @@
 use aiken/hash.{blake2b_256}
 use fuzz/builtin as fbi
-use fuzz/types.{Seed, Fuzz}
+use fuzz/types.{Fuzz, Seed}
 
 // const max_u64 = 18446744073709551615
 // const min_i64 = -9223372036854775808
@@ -30,7 +30,7 @@ pub fn bool() -> Fuzz<Bool> {
 
 test test_bool() {
   let fuzz_bool = bool()
-  let s0 = Seed { size : 1, seed : 42}
+  let s0 = Seed { size: 1, seed: 42 }
   let (b0, s1) = fuzz_bool(s0)
   let (b1, s2) = fuzz_bool(s1)
   let (b2, s3) = fuzz_bool(s2)
@@ -41,5 +41,16 @@ test test_bool() {
   let (b7, s8) = fuzz_bool(s7)
   let (b8, s9) = fuzz_bool(s8)
   let (b9, _) = fuzz_bool(s9)
-  [b0, b1, b2, b3, b4, b5, b6, b7, b8, b9] == [True, False, True, True, False, True, True, False, True, True]
+  [b0, b1, b2, b3, b4, b5, b6, b7, b8, b9] == [
+    True,
+    False,
+    True,
+    True,
+    False,
+    True,
+    True,
+    False,
+    True,
+    True,
+  ]
 }
