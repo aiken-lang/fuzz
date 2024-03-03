@@ -6,7 +6,7 @@ pub fn int_to_bytearray(x: Int) -> ByteArray {
   if x == 0 {
     ""
   } else {
-    ba.push(int_to_bytearray(x / 256), x % 256 )
+    ba.push(int_to_bytearray(x / 256), x % 256)
   }
 }
 
@@ -27,7 +27,7 @@ fn powsum(x: ByteArray, ix: Int) {
   }
 }
 
-fn int_roundtrip(x : Int) {
+fn int_roundtrip(x: Int) {
   bytearray_to_int(int_to_bytearray(x)) == x
 }
 
@@ -40,7 +40,7 @@ test test_int_roundtrip() {
   }
 }
 
-fn ba_roundtrip(x : ByteArray) {
+fn ba_roundtrip(x: ByteArray) {
   int_to_bytearray(bytearray_to_int(x)) == x
 }
 
@@ -52,7 +52,7 @@ test test_ba_roundtrip() {
 }
 
 test test_int_to_bytearray() {
-  and { 
+  and {
     int_to_bytearray(0) == #"",
     int_to_bytearray(1) == #"01",
     int_to_bytearray(255) == #"ff",
@@ -64,13 +64,13 @@ test test_int_to_bytearray() {
 
 test test_bytearray_to_int() {
   and {
-    bytearray_to_int(#"" ) == 0,
-    bytearray_to_int(#"01" ) == 1,
-    bytearray_to_int(#"ff" ) == 255,
-    bytearray_to_int(#"0100" ) == 1,
-    bytearray_to_int(#"0001" ) == 256,
-    bytearray_to_int(#"0002" ) == 512,
-    bytearray_to_int(#"feff" ) == 254 + 255 * 256 
+    bytearray_to_int(#"") == 0,
+    bytearray_to_int(#"01") == 1,
+    bytearray_to_int(#"ff") == 255,
+    bytearray_to_int(#"0100") == 1,
+    bytearray_to_int(#"0001") == 256,
+    bytearray_to_int(#"0002") == 512,
+    bytearray_to_int(#"feff") == 254 + 255 * 256,
   }
 }
 
@@ -82,7 +82,6 @@ test test_powsum_1() {
     powsum(#"0100", 1) == 1,
     powsum(#"0001", 1) == 256,
     powsum(#"0002", 1) == 512,
-    powsum(#"ffff", 1) == 255 + 255 * 256 
+    powsum(#"ffff", 1) == 255 + 255 * 256,
   }
 }
-

@@ -1,18 +1,17 @@
 use aiken/bytearray as ba
 use aiken/hash.{blake2b_256}
 use aiken/math.{pow2}
-use fuzz/builtin as fbi
-use fuzz/types.{Seed, Fuzz}
 use fuzz/base.{step_seed}
+use fuzz/builtin as fbi
 use fuzz/int.{int_range}
-
+use fuzz/types.{Fuzz, Seed}
 
 pub fn bytearray32() -> Fuzz<ByteArray> {
   fn(s: Seed) { (blake2b_256(fbi.int_to_bytearray(s.seed)), step_seed(s)) }
 }
 
 pub fn bytearray_fixed(length: Int) -> Fuzz<ByteArray> {
-  fn(s : Seed) {
+  fn(s: Seed) {
     if length <= 0 {
       ("", s)
     } else {
@@ -36,15 +35,12 @@ pub fn bytearray64() -> Fuzz<ByteArray> {
 }
 
 pub fn bytearray_range(lo: Int, hi: Int) -> Fuzz<ByteArray> {
-  fn(s : Seed) {
+  fn(s: Seed) {
     let (length, s1) = int_range(lo, hi)(s)
     bytearray_fixed(length)(s1)
   }
 }
 
 pub fn bytearray() -> Fuzz<ByteArray> {
-  fn(s : Seed) {
-    bytearray_range(0, pow2(s.size))(s)
-  }
+  fn(s: Seed) { bytearray_range(0, pow2(s.size))(s) }
 }
-
