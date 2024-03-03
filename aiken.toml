@@ -1,10 +1,10 @@
-name = "waalge/fuzz"
-version = "0.0.0"
+name = "aiken-lang/fuzz"
+version = "1.0.0"
 license = "Apache-2.0"
-description = "Fuzzing in Aiken"
+description = "A library for writing Aiken's fuzzers."
 
 [repository]
-user = "waalge"
+user = "aiken-lang"
 project = "fuzz"
 platform = "github"
 
