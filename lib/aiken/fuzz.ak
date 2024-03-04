@@ -17,27 +17,32 @@ const min_rand = 0
 fn rand(prng: PRNG) -> Option<(PRNG, Int)> {
   when prng is {
     Seeded { seed, choices } -> {
-      let digest =
-        seed
-          |> builtin.integer_to_bytearray(True, 32, _)
-          |> builtin.blake2b_256()
-
       let choice =
-        digest
+        seed
           |> builtin.index_bytearray(0)
 
-      let new_seed =
-        digest
-          |> builtin.slice_bytearray(1, 4, _)
-          |> builtin.bytearray_to_integer(True, _)
-
-      Some((Seeded { seed: new_seed, choices: [choice, ..choices] }, choice))
+      Some(
+        (
+          Seeded {
+            seed: builtin.blake2b_256(seed),
+            choices: builtin.cons_bytearray(choice, choices),
+          },
+          choice,
+        ),
+      )
     }
 
-    Replayed { choices } ->
-      when choices is {
-        [] -> None
-        [head, ..tail] -> Some((Replayed { choices: tail }, head))
+    Replayed { cursor, choices } ->
+      if cursor >= 1 {
+        let cursor = cursor - 1
+        Some(
+          (
+            Replayed { choices, cursor },
+            builtin.index_bytearray(choices, cursor),
+          ),
+        )
+      } else {
+        None
       }
   }
 }
@@ -46,16 +51,23 @@ fn with_choice(choice: Int) -> Fuzzer<Int> {
   fn(prng) {
     when prng is {
       Seeded { seed, choices } ->
-        Some((Seeded { seed, choices: [choice, ..choices] }, choice))
-      Replayed { choices } ->
-        when choices is {
-          [head, ..tail] ->
-            if head == choice {
-              Some((Replayed { choices: tail }, choice))
-            } else {
-              None
-            }
-          _ -> None
+        Some(
+          (
+            Seeded { seed, choices: builtin.cons_bytearray(choice, choices) },
+            choice,
+          ),
+        )
+      Replayed { cursor, choices } ->
+        if cursor >= 1 {
+          let cursor = cursor - 1
+          let drawn = builtin.index_bytearray(choices, cursor)
+          if choice == drawn {
+            Some((Replayed { choices, cursor }, choice))
+          } else {
+            None
+          }
+        } else {
+          None
         }
     }
   }
@@ -90,69 +102,72 @@ pub fn int() -> Fuzzer<Int> {
   fn(prng) {
     when prng is {
       Seeded { seed, choices } -> {
-        let digest =
-          seed
-            |> builtin.integer_to_bytearray(True, 32, _)
-            |> builtin.blake2b_256()
+        let fst_choice = builtin.index_bytearray(seed, 0)
 
-        let fst_choice = builtin.index_bytearray(digest, 0)
-
-        let sign =
-          if fst_choice <= 12 {
-            fn(x) { -x }
-          } else {
-            identity
-          }
-
-        let weight = builtin.index_bytearray(digest, 1)
-
-        let snd_choice =
-          if weight < 128 {
-            builtin.index_bytearray(digest, 2)
-          } else if weight < 195 {
-            builtin.index_bytearray(digest, 2) % 16
-          } else if weight < 228 {
-            digest
-              |> builtin.slice_bytearray(2, 4, _)
-              |> builtin.bytearray_to_integer(True, _)
-          } else {
-            digest
-              |> builtin.slice_bytearray(2, 8, _)
-              |> builtin.bytearray_to_integer(True, _)
-          }
-
-        let new_seed =
-          digest
-            |> builtin.slice_bytearray(27, 4, _)
-            |> builtin.bytearray_to_integer(True, _)
-
-        Some(
-          (
-            Seeded {
-              seed: new_seed,
-              choices: [snd_choice, fst_choice, ..choices],
-            },
-            sign(snd_choice),
-          ),
-        )
+        fn(choice, choices) {
+          Some((Seeded { seed: builtin.blake2b_256(seed), choices }, choice))
+        }
+          |> fn(return) {
+               if fst_choice < 128 {
+                 return(fst_choice, builtin.cons_bytearray(fst_choice, choices))
+               } else if fst_choice < 224 {
+                 return(
+                   fst_choice % 16,
+                   builtin.cons_bytearray(fst_choice % 16, choices),
+                 )
+               } else if fst_choice < 236 {
+                 let snd_choice = builtin.index_bytearray(seed, 1)
+                 return(
+                   -snd_choice,
+                   builtin.cons_bytearray(
+                     snd_choice,
+                     builtin.cons_bytearray(fst_choice, choices),
+                   ),
+                 )
+               } else {
+                 let snd_choice = builtin.index_bytearray(seed, 1)
+                 return(
+                   u16(fst_choice, snd_choice),
+                   builtin.cons_bytearray(
+                     snd_choice,
+                     builtin.cons_bytearray(fst_choice, choices),
+                   ),
+                 )
+               }
+             }
       }
 
-      Replayed { choices } ->
-        when choices is {
-          [fst_choice, snd_choice, ..tail] -> {
-            let sign =
-              if fst_choice <= 12 {
-                fn(x) { -x }
-              } else {
-                identity
-              }
-
-            Some((Replayed { choices: tail }, sign(snd_choice)))
+      Replayed { cursor, choices } ->
+        if cursor >= 1 {
+          let cursor = cursor - 1
+          let fst_choice = builtin.index_bytearray(choices, cursor)
+          if fst_choice < 224 {
+            Some((Replayed { choices, cursor }, fst_choice))
+          } else if fst_choice < 236 && cursor >= 1 {
+            let cursor = cursor - 1
+            let snd_choice = builtin.index_bytearray(choices, cursor)
+            Some((Replayed { choices, cursor }, -snd_choice))
+          } else if cursor >= 1 {
+            let cursor = cursor - 1
+            let snd_choice = builtin.index_bytearray(choices, cursor)
+            Some((Replayed { choices, cursor }, u16(fst_choice, snd_choice)))
+          } else {
+            None
           }
-          _ -> None
+        } else {
+          None
         }
     }
   }
+}
+
+fn u16(msb: Int, lsb: Int) -> Int {
+  builtin.bytearray_to_integer(
+    True,
+    ""
+      |> builtin.cons_bytearray(msb, _)
+      |> builtin.cons_bytearray(lsb, _),
+  )
 }
 
 /// Generate a random list of elements from a given element.
