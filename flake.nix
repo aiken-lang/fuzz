@@ -7,7 +7,6 @@
     pre-commit-hooks-nix.url = "github:hercules-ci/pre-commit-hooks.nix/flakeModule";
     pre-commit-hooks-nix.inputs.nixpkgs.follows = "nixpkgs";
     aiken.url = "github:aiken-lang/aiken";
-    # aiken.url = "path:/home/waalge/clones/cardano/aiken";
     treefmt-nix.url = "github:numtide/treefmt-nix";
   };
 
@@ -42,8 +41,6 @@
             name = "hello-aiken";
             packages = with pkgs; [
               inputs'.aiken.packages.aiken
-              deno
-              pandoc
             ];
           };
         };
