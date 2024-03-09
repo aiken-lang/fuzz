@@ -20,6 +20,37 @@ test prop_int_distribution(n via int()) {
   True
 }
 
+
+fn int_range() -> Fuzzer<(Int, Int, Int)> {
+  fuzz.int()
+    |> fuzz.and_then(
+         fn(lo) {
+           fuzz.int()
+             |> fuzz.and_then(
+                  fn(hi) {
+                    fuzz.int_between(lo, hi)
+                      |> fuzz.map(fn(in) { (lo, hi, in) })
+                  },
+                )
+         },
+       )
+}
+
+test prop_int_between(triple via int_range()) {
+  let (lo, hi, in) = triple
+  if lo < hi {
+    and {
+      lo <= in, 
+      in <= hi,
+    }
+  } else {
+    and {
+      hi <= in, 
+      in <= lo,
+    }
+  }
+}
+
 test prop_bool_distribution(b via bool()) {
   label(
     if b {
