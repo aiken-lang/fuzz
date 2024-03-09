@@ -168,6 +168,54 @@ pub fn int() -> Fuzzer<Int> {
   }
 }
 
+pub fn log2(x : Int ) -> Int {
+  expect x > 0 
+  let s = builtin.integer_to_bytearray(True, 0, x)
+  let len = builtin.length_of_bytearray(s)
+  let b = builtin.index_bytearray(s, 0)
+  (len * 8) - if b < 2 {
+    8
+  } else if b < 4 {
+    7 
+  } else if b < 8 {
+    6
+  } else if b < 16 {
+    5
+  } else if b < 32 {
+    4
+  } else if b < 64 {
+    3
+  } else if b < 128 {
+    2
+  } else {
+    1
+  }
+}
+
+test test_log2_1() {
+  and {
+    log2(1) == 0,
+    log2(2) == 1,
+    log2(3) == 1,
+    log2(4) == 2,
+    log2(256) == 8,
+    log2(257) == 8,
+    log2(511) == 8,
+    log2(1025) == 10,
+  }
+}
+
+
+pub fn in_between(lo :Int , hi : Int ) -> Fuzzer<Int> {
+  if lo < hi {
+    int_between(lo, hi)
+  } else if lo == hi {
+    constant(lo)
+  } else {
+    todo  
+  }
+}
+
 pub fn int_between(min: Int, max: Int) -> Fuzzer<Int> {
   if max < min {
     int_between(max, min)
