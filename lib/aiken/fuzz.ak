@@ -73,6 +73,15 @@ fn with_choice(choice: Int) -> Fuzzer<Int> {
   }
 }
 
+fn u16(msb: Int, lsb: Int) -> Int {
+  builtin.bytearray_to_integer(
+    True,
+    ""
+      |> builtin.cons_bytearray(msb, _)
+      |> builtin.cons_bytearray(lsb, _),
+  )
+}
+
 // Primitives
 
 /// Create a constant [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer) from an arbitrary value.
@@ -83,10 +92,6 @@ pub fn constant(a: a) -> Fuzzer<a> {
 /// Generate a random `Bool` value.
 pub fn bool() -> Fuzzer<Bool> {
   rand |> map(fn(n) { n % 2 == 0 })
-}
-
-pub fn int_between(_min: Int, _max: Int) -> Fuzzer<Int> {
-  fail
 }
 
 pub fn bytearray() -> Fuzzer<ByteArray> {
@@ -161,13 +166,22 @@ pub fn int() -> Fuzzer<Int> {
   }
 }
 
-fn u16(msb: Int, lsb: Int) -> Int {
-  builtin.bytearray_to_integer(
-    True,
-    ""
-      |> builtin.cons_bytearray(msb, _)
-      |> builtin.cons_bytearray(lsb, _),
-  )
+pub fn int_between(min: Int, max: Int) -> Fuzzer<Int> {
+  if max < min {
+    int_between(max, min)
+  } else if max == min {
+    constant(max)
+  } else {
+    let mid = ( max + min ) / 2
+    let delta = ( max - min ) / 2
+    int()
+      |> and_then(
+           fn(lo) {
+             int()
+               |> map(fn(hi) { mid - lo % ( delta + 1 ) + hi % ( delta + 1 ) })
+           },
+         )
+  }
 }
 
 /// Generate a random list of elements from a given element.
@@ -387,4 +401,10 @@ pub fn map5(
       None -> None
     }
   }
+}
+
+pub fn label(str: String) -> Void {
+  str
+    |> builtin.append_string(@" ", _)
+    |> builtin.debug(Void)
 }
