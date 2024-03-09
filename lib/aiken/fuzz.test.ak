@@ -80,6 +80,10 @@ test prop_int_between_large(n via fuzz.int_between(max_u64_minus, max_u64)) fail
   n < max_u32
 }
 
+test prop_int_sometimes_near_u8(n via fuzz.int()) fail {
+  n < 192 || n > 255
+}
+
 test prop_bool_distribution(b via bool()) {
   label(
     if b {
