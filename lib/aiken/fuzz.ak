@@ -403,6 +403,198 @@ pub fn map5(
   }
 }
 
+/// Combine the results of six [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s
+pub fn map6(
+  fuzz_a: Fuzzer<a>,
+  fuzz_b: Fuzzer<b>,
+  fuzz_c: Fuzzer<c>,
+  fuzz_d: Fuzzer<d>,
+  fuzz_e: Fuzzer<e>,
+  fuzz_f: Fuzzer<f>,
+  func: fn(a, b, c, d, e, f) -> result,
+) -> Fuzzer<result> {
+  fn(s0) {
+    when fuzz_a(s0) is {
+      Some((s1, a)) ->
+        when fuzz_b(s1) is {
+          Some((s2, b)) ->
+            when fuzz_c(s2) is {
+              Some((s3, c)) ->
+                when fuzz_d(s3) is {
+                  Some((s4, d)) ->
+                    when fuzz_e(s4) is {
+                      Some((s5, e)) -> {
+                        when fuzz_f(s5) is {
+                          Some((s6, f)) -> Some((s6, func(a, b, c, d, e, f)))
+                          None -> None
+                        }
+                      }
+                      None -> None
+                    }
+                  None -> None
+                }
+              None -> None
+            }
+          None -> None
+        }
+      None -> None
+    }
+  }
+}
+
+/// Combine the results of seven [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s
+pub fn map7(
+  fuzz_a: Fuzzer<a>,
+  fuzz_b: Fuzzer<b>,
+  fuzz_c: Fuzzer<c>,
+  fuzz_d: Fuzzer<d>,
+  fuzz_e: Fuzzer<e>,
+  fuzz_f: Fuzzer<f>,
+  fuzz_g: Fuzzer<g>,
+  func: fn(a, b, c, d, e, f, g) -> result,
+) -> Fuzzer<result> {
+  fn(s0) {
+    when fuzz_a(s0) is {
+      Some((s1, a)) ->
+        when fuzz_b(s1) is {
+          Some((s2, b)) ->
+            when fuzz_c(s2) is {
+              Some((s3, c)) ->
+                when fuzz_d(s3) is {
+                  Some((s4, d)) ->
+                    when fuzz_e(s4) is {
+                      Some((s5, e)) -> {
+                        when fuzz_f(s5) is {
+                          Some((s6, f)) -> {
+                            when fuzz_g(s6) is {
+                              Some((s7, g)) -> Some((s7, func(a, b, c, d, e, f, g)))
+                              None -> None
+                            }
+                          } 
+                          None -> None
+                        }
+                      }
+                      None -> None
+                    }
+                  None -> None
+                }
+              None -> None
+            }
+          None -> None
+        }
+      None -> None
+    }
+  }
+}
+
+/// Combine the results of eight [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s
+pub fn map8(
+  fuzz_a: Fuzzer<a>,
+  fuzz_b: Fuzzer<b>,
+  fuzz_c: Fuzzer<c>,
+  fuzz_d: Fuzzer<d>,
+  fuzz_e: Fuzzer<e>,
+  fuzz_f: Fuzzer<f>,
+  fuzz_g: Fuzzer<g>,
+  fuzz_h: Fuzzer<h>,
+  func: fn(a, b, c, d, e, f, g, h) -> result,
+) -> Fuzzer<result> {
+  fn(s0) {
+    when fuzz_a(s0) is {
+      Some((s1, a)) ->
+        when fuzz_b(s1) is {
+          Some((s2, b)) ->
+            when fuzz_c(s2) is {
+              Some((s3, c)) ->
+                when fuzz_d(s3) is {
+                  Some((s4, d)) ->
+                    when fuzz_e(s4) is {
+                      Some((s5, e)) -> {
+                        when fuzz_f(s5) is {
+                          Some((s6, f)) -> {
+                            when fuzz_g(s6) is {
+                              Some((s7, g)) -> {
+                                when fuzz_h(s7) is {
+                                  Some((s8, h)) -> Some((s8, func(a, b, c, d, e, f, g, h)))
+                                  None -> None
+                                }
+                              }
+                              None -> None
+                            }
+                          } 
+                          None -> None
+                        }
+                      }
+                      None -> None
+                    }
+                  None -> None
+                }
+              None -> None
+            }
+          None -> None
+        }
+      None -> None
+    }
+  }
+}
+
+/// Combine the results of nine [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s
+pub fn map9(
+  fuzz_a: Fuzzer<a>,
+  fuzz_b: Fuzzer<b>,
+  fuzz_c: Fuzzer<c>,
+  fuzz_d: Fuzzer<d>,
+  fuzz_e: Fuzzer<e>,
+  fuzz_f: Fuzzer<f>,
+  fuzz_g: Fuzzer<g>,
+  fuzz_h: Fuzzer<h>,
+  fuzz_j: Fuzzer<j>,
+  func: fn(a, b, c, d, e, f, g, h, j) -> result,
+) -> Fuzzer<result> {
+  fn(s0) {
+    when fuzz_a(s0) is {
+      Some((s1, a)) ->
+        when fuzz_b(s1) is {
+          Some((s2, b)) ->
+            when fuzz_c(s2) is {
+              Some((s3, c)) ->
+                when fuzz_d(s3) is {
+                  Some((s4, d)) ->
+                    when fuzz_e(s4) is {
+                      Some((s5, e)) -> {
+                        when fuzz_f(s5) is {
+                          Some((s6, f)) -> {
+                            when fuzz_g(s6) is {
+                              Some((s7, g)) -> {
+                                when fuzz_h(s7) is {
+                                  Some((s8, h)) -> {
+                                    when fuzz_j(s8) is {
+                                      Some((s8, j)) -> Some((s8, func(a, b, c, d, e, f, g, h, j)))
+                                      None -> None
+                                    }
+                                  }
+                                  None -> None
+                                }
+                              }
+                              None -> None
+                            }
+                          } 
+                          None -> None
+                        }
+                      }
+                      None -> None
+                    }
+                  None -> None
+                }
+              None -> None
+            }
+          None -> None
+        }
+      None -> None
+    }
+  }
+}
+
 pub fn label(str: String) -> Void {
   str
     |> builtin.append_string(@" ", _)
