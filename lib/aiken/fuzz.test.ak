@@ -3,18 +3,28 @@ use aiken/list
 use aiken/math
 use aiken/string
 
+const max_u64: Int = 18_446_744_073_709_551_615
+const max_u32: Int = 4_294_967_295
+const max_u16: Int = 65_535
+
 test prop_int_distribution(n via int()) {
   label(
-    if n < -255 {
-      @"]-∞; -255["
+    if n < -max_u64 - 1 {
+      @"]-∞, -2^64["
+    } else if n < - max_u32 - 1 {
+      @"[-2^64, -2^32["
+    } else if n < - max_u16 - 1  {
+      @"[-2^32, -2^16 ["
     } else if n < 0 {
-      @"[-255; 0["
-    } else if n < 16 {
-      @"[0; 16["
-    } else if n < 255 {
-      @"[16; 255["
+      @"[-2 ^ 16; 0 ["
+    } else if n <= max_u16  {
+      @"[0, 2^16 ["
+    } else if n <= max_u32  {
+      @"[2^16, 2^32 ["
+    } else if n <= max_u64  {
+      @"[2^32, 2^64 ["
     } else {
-      @"[255; +∞["
+      @"[2^64; +∞["
     },
   )
 
@@ -51,13 +61,11 @@ test prop_int_between(triple via int_range()) {
   }
 }
 
-const max_u64: Int = 18_446_744_073_709_551_615
-
 const max_u64_minus: Int = -18_446_744_073_709_551_616
 
-test prop_int_between_large(n via fuzz.int_between(max_u64_minus, max_u64)) {
+!test prop_int_between_large(n via fuzz.int_between(max_u64_minus, max_u64)) {
   label(string.from_int(n))
-  n >= 1
+  n < max_u32
 }
 
 test prop_bool_distribution(b via bool()) {
