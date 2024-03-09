@@ -73,12 +73,12 @@ fn with_choice(choice: Int) -> Fuzzer<Int> {
   }
 }
 
-fn u16(msb: Int, lsb: Int) -> Int {
+fn u16(lsb: Int, msb: Int) -> Int {
   builtin.bytearray_to_integer(
-    True,
+    False,
     ""
-      |> builtin.cons_bytearray(msb, _)
-      |> builtin.cons_bytearray(lsb, _),
+      |> builtin.cons_bytearray(lsb, _)
+      |> builtin.cons_bytearray(msb, _),
   )
 }
 
@@ -102,7 +102,7 @@ pub fn bytearray_between(_min: Int, _max: Int) -> Fuzzer<ByteArray> {
   fail
 }
 
-/// Generate a random integer value. It favors small values near zero, but generate across the whole range [-2^64; 2^64 - 1]
+/// Generate a random integer value. It favors small values near zero, but generate across the whole range [-2^8; 2^16 - 1]
 pub fn int() -> Fuzzer<Int> {
   fn(prng) {
     when prng is {
@@ -115,12 +115,14 @@ pub fn int() -> Fuzzer<Int> {
           |> fn(return) {
                if fst_choice < 128 {
                  return(fst_choice, builtin.cons_bytearray(fst_choice, choices))
-               } else if fst_choice < 224 {
+               } else if fst_choice < 132 {
+                 return(0, builtin.cons_bytearray(fst_choice, choices))
+               } else if fst_choice < 156 {
                  return(
                    fst_choice % 16,
-                   builtin.cons_bytearray(fst_choice % 16, choices),
+                   builtin.cons_bytearray(fst_choice, choices),
                  )
-               } else if fst_choice < 236 {
+               } else if fst_choice < 192 {
                  let snd_choice = builtin.index_bytearray(seed, 1)
                  return(
                    -snd_choice,
@@ -607,7 +609,11 @@ pub fn map9(
 }
 
 pub fn label(str: String) -> Void {
+  // TODO: Use append_string as soon as we've fixed the formatter to not
+  // remove NUL bytes
   str
-    |> builtin.append_string(@" ", _)
+    |> builtin.encode_utf8
+    |> builtin.cons_bytearray(0, _)
+    |> builtin.decode_utf8
     |> builtin.debug(Void)
 }
