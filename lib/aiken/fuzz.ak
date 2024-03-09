@@ -423,12 +423,11 @@ pub fn map6(
                 when fuzz_d(s3) is {
                   Some((s4, d)) ->
                     when fuzz_e(s4) is {
-                      Some((s5, e)) -> {
+                      Some((s5, e)) ->
                         when fuzz_f(s5) is {
                           Some((s6, f)) -> Some((s6, func(a, b, c, d, e, f)))
                           None -> None
                         }
-                      }
                       None -> None
                     }
                   None -> None
@@ -463,17 +462,16 @@ pub fn map7(
                 when fuzz_d(s3) is {
                   Some((s4, d)) ->
                     when fuzz_e(s4) is {
-                      Some((s5, e)) -> {
+                      Some((s5, e)) ->
                         when fuzz_f(s5) is {
-                          Some((s6, f)) -> {
+                          Some((s6, f)) ->
                             when fuzz_g(s6) is {
-                              Some((s7, g)) -> Some((s7, func(a, b, c, d, e, f, g)))
+                              Some((s7, g)) ->
+                                Some((s7, func(a, b, c, d, e, f, g)))
                               None -> None
                             }
-                          } 
                           None -> None
                         }
-                      }
                       None -> None
                     }
                   None -> None
@@ -509,22 +507,20 @@ pub fn map8(
                 when fuzz_d(s3) is {
                   Some((s4, d)) ->
                     when fuzz_e(s4) is {
-                      Some((s5, e)) -> {
+                      Some((s5, e)) ->
                         when fuzz_f(s5) is {
-                          Some((s6, f)) -> {
+                          Some((s6, f)) ->
                             when fuzz_g(s6) is {
-                              Some((s7, g)) -> {
+                              Some((s7, g)) ->
                                 when fuzz_h(s7) is {
-                                  Some((s8, h)) -> Some((s8, func(a, b, c, d, e, f, g, h)))
+                                  Some((s8, h)) ->
+                                    Some((s8, func(a, b, c, d, e, f, g, h)))
                                   None -> None
                                 }
-                              }
                               None -> None
                             }
-                          } 
                           None -> None
                         }
-                      }
                       None -> None
                     }
                   None -> None
@@ -561,27 +557,26 @@ pub fn map9(
                 when fuzz_d(s3) is {
                   Some((s4, d)) ->
                     when fuzz_e(s4) is {
-                      Some((s5, e)) -> {
+                      Some((s5, e)) ->
                         when fuzz_f(s5) is {
-                          Some((s6, f)) -> {
+                          Some((s6, f)) ->
                             when fuzz_g(s6) is {
-                              Some((s7, g)) -> {
+                              Some((s7, g)) ->
                                 when fuzz_h(s7) is {
-                                  Some((s8, h)) -> {
+                                  Some((s8, h)) ->
                                     when fuzz_j(s8) is {
-                                      Some((s8, j)) -> Some((s8, func(a, b, c, d, e, f, g, h, j)))
+                                      Some((s8, j)) ->
+                                        Some(
+                                          (s8, func(a, b, c, d, e, f, g, h, j)),
+                                        )
                                       None -> None
                                     }
-                                  }
                                   None -> None
                                 }
-                              }
                               None -> None
                             }
-                          } 
                           None -> None
                         }
-                      }
                       None -> None
                     }
                   None -> None
