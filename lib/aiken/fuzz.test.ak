@@ -43,6 +43,85 @@ test prop_int_distribution(n via int()) {
   True
 }
 
+const m0 = 8
+
+const m1 = 256
+
+const m2 = 16777216
+
+const m3 = 4294967296
+
+const m4 = 18446744073709551616
+
+test test_uint(n via fuzz.uint(2)) {
+  label(
+    if n < m0 {
+      @"m0"
+    } else if n < m1 {
+      @"m1"
+    } else if n < m2 {
+      @"m2"
+    } else if n < m3 {
+      @"m3"
+    } else if n < m4 {
+      @"m4"
+    } else {
+      @"m5"
+    },
+  )
+  True
+}
+
+test test_uint_8(n via fuzz.uint(8)) {
+  label(
+    if n < 32 {
+      @"0"
+    } else if n < 64 {
+      @"1"
+    } else if n < 96 {
+      @"2"
+    } else if n < 128 {
+      @"3"
+    } else if n < 160 {
+      @"4"
+    } else if n < 192 {
+      @"5"
+    } else if n < 224 {
+      @"6"
+    } else if n < 256 {
+      @"7"
+    } else {
+      @"impossible"
+    },
+  )
+  True
+}
+
+test test_uint_16(n via fuzz.uint(24)) {
+  label(
+    if n < 2097152 { 
+      @"0"
+    } else if n < 4194304 {
+      @"1"
+    } else if n < 6291456 {
+      @"2"
+    } else if n < 8388608 {
+      @"3"
+    } else if n < 10485760 {
+      @"4"
+    } else if n < 12582912 {
+      @"5"
+    } else if n < 14680064 {
+      @"6"
+    } else if n < 16777216 { // max_u16 + 1
+      @"7"
+    } else {
+      @"impossible"
+    },
+  )
+  True
+}
+
 fn int_range() -> Fuzzer<(Int, Int, Int)> {
   fuzz.int()
     |> fuzz.and_then(

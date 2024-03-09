@@ -48,6 +48,55 @@ fn rand(prng: PRNG) -> Option<(PRNG, Int)> {
   }
 }
 
+fn rand_n(n_bits : Int, prng: PRNG) -> Option<(PRNG, Int)> {
+  let n_bytes = (n_bits - 1 / 8) + 1 
+  let ub = math.pow2(n_bits)
+  when prng is {
+    Seeded { seed, choices } -> {
+      let segment =
+        seed
+          |> builtin.slice_bytearray(0, n_bytes, _)
+      let choice = segment
+          |> builtin.bytearray_to_integer(True, _)
+          |> builtin.mod_integer(ub)
+
+      Some(
+        (
+          Seeded {
+            seed: builtin.blake2b_256(seed),
+            choices: builtin.append_bytearray(segment, choices),
+          },
+          choice,
+        ),
+      )
+    }
+
+    Replayed { cursor, choices } ->
+      if cursor >= 1 {
+        // FIXME :: WHICH WAY DOES THE CURSOR READ?! 
+        let cursor = cursor - n_bytes
+        Some(
+          (
+            Replayed { choices, cursor },
+            builtin.slice_bytearray(cursor - n_bytes, n_bytes, choices)
+              |> builtin.bytearray_to_integer(True, _)
+              |> builtin.mod_integer(ub)
+            )
+            ,
+          )
+      } else {
+        None
+      }
+  }
+}
+
+pub fn uint(n_bits : Int) -> Fuzzer<Int> {
+  expect n_bits > 0
+  expect n_bits <= 256 // 8 * 32
+  rand_n(n_bits, _)
+}
+
+
 fn with_choice(choice: Int) -> Fuzzer<Int> {
   fn(prng) {
     when prng is {
@@ -73,6 +122,7 @@ fn with_choice(choice: Int) -> Fuzzer<Int> {
     }
   }
 }
+
 
 fn u16(lsb: Int, msb: Int) -> Int {
   builtin.bytearray_to_integer(
