@@ -1,6 +1,7 @@
 use aiken/fuzz.{bool, int, label, list, list_between}
 use aiken/list
 use aiken/math
+use aiken/string
 
 test prop_int_distribution(n via int()) {
   label(
@@ -19,7 +20,6 @@ test prop_int_distribution(n via int()) {
 
   True
 }
-
 
 fn int_range() -> Fuzzer<(Int, Int, Int)> {
   fuzz.int()
@@ -40,15 +40,24 @@ test prop_int_between(triple via int_range()) {
   let (lo, hi, in) = triple
   if lo < hi {
     and {
-      lo <= in, 
+      lo <= in,
       in <= hi,
     }
   } else {
     and {
-      hi <= in, 
+      hi <= in,
       in <= lo,
     }
   }
+}
+
+const max_u64: Int = 18_446_744_073_709_551_615
+
+const max_u64_minus: Int = -18_446_744_073_709_551_616
+
+test prop_int_between_large(n via fuzz.int_between(max_u64_minus, max_u64)) {
+  label(string.from_int(n))
+  n >= 1
 }
 
 test prop_bool_distribution(b via bool()) {
