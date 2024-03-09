@@ -303,15 +303,15 @@ pub fn map(fuzz_a: Fuzzer<a>, f: fn(a) -> b) -> Fuzzer<b> {
 
 /// Combine the results of two [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s
 pub fn map2(
-  fuzz_a: Fuzzer<a>,
-  fuzz_b: Fuzzer<b>,
-  f: fn(a, b) -> result,
+  fuzz_0: Fuzzer<t0>,
+  fuzz_1: Fuzzer<t1>,
+  f: fn(t0, t1) -> result,
 ) -> Fuzzer<result> {
   fn(s0) {
-    when fuzz_a(s0) is {
-      Some((s1, a)) ->
-        when fuzz_b(s1) is {
-          Some((s2, b)) -> Some((s2, f(a, b)))
+    when fuzz_0(s0) is {
+      Some((s1, t0)) ->
+        when fuzz_1(s1) is {
+          Some((s2, t1)) -> Some((s2, f(t0, t1)))
           None -> None
         }
       None -> None
@@ -321,18 +321,18 @@ pub fn map2(
 
 /// Combine the results of three [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s
 pub fn map3(
-  fuzz_a: Fuzzer<a>,
-  fuzz_b: Fuzzer<b>,
-  fuzz_c: Fuzzer<c>,
-  f: fn(a, b, c) -> result,
+  fuzz_0: Fuzzer<t0>,
+  fuzz_1: Fuzzer<t1>,
+  fuzz_2: Fuzzer<t2>,
+  f: fn(t0, t1, t2) -> result,
 ) -> Fuzzer<result> {
   fn(s0) {
-    when fuzz_a(s0) is {
-      Some((s1, a)) ->
-        when fuzz_b(s1) is {
-          Some((s2, b)) ->
-            when fuzz_c(s2) is {
-              Some((s3, c)) -> Some((s3, f(a, b, c)))
+    when fuzz_0(s0) is {
+      Some((s1, t0)) ->
+        when fuzz_1(s1) is {
+          Some((s2, t1)) ->
+            when fuzz_2(s2) is {
+              Some((s3, t2)) -> Some((s3, f(t0, t1, t2)))
               None -> None
             }
           None -> None
@@ -344,21 +344,21 @@ pub fn map3(
 
 /// Combine the results of four [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s
 pub fn map4(
-  fuzz_a: Fuzzer<a>,
-  fuzz_b: Fuzzer<b>,
-  fuzz_c: Fuzzer<c>,
-  fuzz_d: Fuzzer<d>,
-  f: fn(a, b, c, d) -> result,
+  fuzz_0: Fuzzer<t0>,
+  fuzz_1: Fuzzer<t1>,
+  fuzz_2: Fuzzer<t2>,
+  fuzz_3: Fuzzer<t3>,
+  f: fn(t0, t1, t2, t3) -> result,
 ) -> Fuzzer<result> {
   fn(s0) {
-    when fuzz_a(s0) is {
-      Some((s1, a)) ->
-        when fuzz_b(s1) is {
-          Some((s2, b)) ->
-            when fuzz_c(s2) is {
-              Some((s3, c)) ->
-                when fuzz_d(s3) is {
-                  Some((s4, d)) -> Some((s4, f(a, b, c, d)))
+    when fuzz_0(s0) is {
+      Some((s1, t0)) ->
+        when fuzz_1(s1) is {
+          Some((s2, t1)) ->
+            when fuzz_2(s2) is {
+              Some((s3, t2)) ->
+                when fuzz_3(s3) is {
+                  Some((s4, t3)) -> Some((s4, f(t0, t1, t2, t3)))
                   None -> None
                 }
               None -> None
@@ -372,24 +372,227 @@ pub fn map4(
 
 /// Combine the results of five [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s
 pub fn map5(
-  fuzz_a: Fuzzer<a>,
-  fuzz_b: Fuzzer<b>,
-  fuzz_c: Fuzzer<c>,
-  fuzz_d: Fuzzer<d>,
-  fuzz_e: Fuzzer<e>,
-  f: fn(a, b, c, d, e) -> result,
+  fuzz_0: Fuzzer<t0>,
+  fuzz_1: Fuzzer<t1>,
+  fuzz_2: Fuzzer<t2>,
+  fuzz_3: Fuzzer<t3>,
+  fuzz_4: Fuzzer<t4>,
+  f: fn(t0, t1, t2, t3, t4) -> result,
 ) -> Fuzzer<result> {
   fn(s0) {
-    when fuzz_a(s0) is {
-      Some((s1, a)) ->
-        when fuzz_b(s1) is {
-          Some((s2, b)) ->
-            when fuzz_c(s2) is {
-              Some((s3, c)) ->
-                when fuzz_d(s3) is {
-                  Some((s4, d)) ->
-                    when fuzz_e(s4) is {
-                      Some((s5, e)) -> Some((s5, f(a, b, c, d, e)))
+    when fuzz_0(s0) is {
+      Some((s1, t0)) ->
+        when fuzz_1(s1) is {
+          Some((s2, t1)) ->
+            when fuzz_2(s2) is {
+              Some((s3, t2)) ->
+                when fuzz_3(s3) is {
+                  Some((s4, t3)) ->
+                    when fuzz_4(s4) is {
+                      Some((s5, t4)) -> Some((s5, f(t0, t1, t2, t3, t4)))
+                      None -> None
+                    }
+                  None -> None
+                }
+              None -> None
+            }
+          None -> None
+        }
+      None -> None
+    }
+  }
+}
+
+/// Combine the results of six [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s
+pub fn map6(
+  fuzz_0: Fuzzer<t0>,
+  fuzz_1: Fuzzer<t1>,
+  fuzz_2: Fuzzer<t2>,
+  fuzz_3: Fuzzer<t3>,
+  fuzz_4: Fuzzer<t4>,
+  fuzz_5: Fuzzer<t5>,
+  f: fn(t0, t1, t2, t3, t4, t5) -> result,
+) -> Fuzzer<result> {
+  fn(s0) {
+    when fuzz_0(s0) is {
+      Some((s1, t0)) ->
+        when fuzz_1(s1) is {
+          Some((s2, t1)) ->
+            when fuzz_2(s2) is {
+              Some((s3, t2)) ->
+                when fuzz_3(s3) is {
+                  Some((s4, t3)) ->
+                    when fuzz_4(s4) is {
+                      Some((s5, t4)) ->
+                        when fuzz_5(s5) is {
+                          Some((s6, t5)) ->
+                            Some((s6, f(t0, t1, t2, t3, t4, t5)))
+                          None -> None
+                        }
+                      None -> None
+                    }
+                  None -> None
+                }
+              None -> None
+            }
+          None -> None
+        }
+      None -> None
+    }
+  }
+}
+
+/// Combine the results of seven [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s
+pub fn map7(
+  fuzz_0: Fuzzer<t0>,
+  fuzz_1: Fuzzer<t1>,
+  fuzz_2: Fuzzer<t2>,
+  fuzz_3: Fuzzer<t3>,
+  fuzz_4: Fuzzer<t4>,
+  fuzz_5: Fuzzer<t5>,
+  fuzz_6: Fuzzer<t6>,
+  f: fn(t0, t1, t2, t3, t4, t5, t6) -> result,
+) -> Fuzzer<result> {
+  fn(s0) {
+    when fuzz_0(s0) is {
+      Some((s1, t0)) ->
+        when fuzz_1(s1) is {
+          Some((s2, t1)) ->
+            when fuzz_2(s2) is {
+              Some((s3, t2)) ->
+                when fuzz_3(s3) is {
+                  Some((s4, t3)) ->
+                    when fuzz_4(s4) is {
+                      Some((s5, t4)) ->
+                        when fuzz_5(s5) is {
+                          Some((s6, t5)) ->
+                            when fuzz_6(s6) is {
+                              Some((s7, t6)) ->
+                                Some((s7, f(t0, t1, t2, t3, t4, t5, t6)))
+                              None -> None
+                            }
+                          None -> None
+                        }
+                      None -> None
+                    }
+                  None -> None
+                }
+              None -> None
+            }
+          None -> None
+        }
+      None -> None
+    }
+  }
+}
+
+/// Combine the results of eight [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s
+pub fn map8(
+  fuzz_0: Fuzzer<t0>,
+  fuzz_1: Fuzzer<t1>,
+  fuzz_2: Fuzzer<t2>,
+  fuzz_3: Fuzzer<t3>,
+  fuzz_4: Fuzzer<t4>,
+  fuzz_5: Fuzzer<t5>,
+  fuzz_6: Fuzzer<t6>,
+  fuzz_7: Fuzzer<t7>,
+  f: fn(t0, t1, t2, t3, t4, t5, t6, t7) -> result,
+) -> Fuzzer<result> {
+  fn(s0) {
+    when fuzz_0(s0) is {
+      Some((s1, t0)) ->
+        when fuzz_1(s1) is {
+          Some((s2, t1)) ->
+            when fuzz_2(s2) is {
+              Some((s3, t2)) ->
+                when fuzz_3(s3) is {
+                  Some((s4, t3)) ->
+                    when fuzz_4(s4) is {
+                      Some((s5, t4)) ->
+                        when fuzz_5(s5) is {
+                          Some((s6, t5)) ->
+                            when fuzz_6(s6) is {
+                              Some((s7, t6)) ->
+                                when fuzz_7(s7) is {
+                                  Some((s8, t7)) ->
+                                    Some(
+                                      (s8, f(t0, t1, t2, t3, t4, t5, t6, t7)),
+                                    )
+                                  None -> None
+                                }
+                              None -> None
+                            }
+                          None -> None
+                        }
+                      None -> None
+                    }
+                  None -> None
+                }
+              None -> None
+            }
+          None -> None
+        }
+      None -> None
+    }
+  }
+}
+
+/// Combine the results of nine [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s
+pub fn map9(
+  fuzz_0: Fuzzer<t0>,
+  fuzz_1: Fuzzer<t1>,
+  fuzz_2: Fuzzer<t2>,
+  fuzz_3: Fuzzer<t3>,
+  fuzz_4: Fuzzer<t4>,
+  fuzz_5: Fuzzer<t5>,
+  fuzz_6: Fuzzer<t6>,
+  fuzz_7: Fuzzer<t7>,
+  fuzz_8: Fuzzer<t8>,
+  f: fn(t0, t1, t2, t3, t4, t5, t6, t7, t8) -> result,
+) -> Fuzzer<result> {
+  fn(s0) {
+    when fuzz_0(s0) is {
+      Some((s1, t0)) ->
+        when fuzz_1(s1) is {
+          Some((s2, t1)) ->
+            when fuzz_2(s2) is {
+              Some((s3, t2)) ->
+                when fuzz_3(s3) is {
+                  Some((s4, t3)) ->
+                    when fuzz_4(s4) is {
+                      Some((s5, t4)) ->
+                        when fuzz_5(s5) is {
+                          Some((s6, t5)) ->
+                            when fuzz_6(s6) is {
+                              Some((s7, t6)) ->
+                                when fuzz_7(s7) is {
+                                  Some((s8, t7)) ->
+                                    when fuzz_8(s8) is {
+                                      Some((s9, t8)) ->
+                                        Some(
+                                          (
+                                            s9,
+                                            f(
+                                              t0,
+                                              t1,
+                                              t2,
+                                              t3,
+                                              t4,
+                                              t5,
+                                              t6,
+                                              t7,
+                                              t8,
+                                            ),
+                                          ),
+                                        )
+                                      None -> None
+                                    }
+                                  None -> None
+                                }
+                              None -> None
+                            }
+                          None -> None
+                        }
                       None -> None
                     }
                   None -> None
