@@ -1,5 +1,6 @@
 use aiken/builtin
 use aiken/list
+use aiken/math
 
 // Internal
 
@@ -168,15 +169,15 @@ pub fn int() -> Fuzzer<Int> {
   }
 }
 
-pub fn log2(x : Int ) -> Int {
-  expect x > 0 
+pub fn log2(x: Int) -> Int {
+  expect x > 0
   let s = builtin.integer_to_bytearray(True, 0, x)
   let len = builtin.length_of_bytearray(s)
   let b = builtin.index_bytearray(s, 0)
-  (len * 8) - if b < 2 {
+  len * 8 - if b < 2 {
     8
   } else if b < 4 {
-    7 
+    7
   } else if b < 8 {
     6
   } else if b < 16 {
@@ -205,14 +206,26 @@ test test_log2_1() {
   }
 }
 
-
-pub fn in_between(lo :Int , hi : Int ) -> Fuzzer<Int> {
+pub fn in_between(lo: Int, hi: Int) -> Fuzzer<Int> {
   if lo < hi {
     int_between(lo, hi)
   } else if lo == hi {
     constant(lo)
   } else {
-    todo  
+    let max = hi - lo
+    let max_pow2 = math.pow2(log2(max))
+    rand
+      |> and_then(
+           fn(n) {
+             if n * max <= max_rand * max_pow2 {
+               todo @"uniform randomness in power-of-two bucket"
+             } else {
+               in_between(0, max - max_pow2)
+                 |> map(fn(offset) { max_pow2 + offset })
+             }
+           },
+         )
+      |> map(fn(n) { n + lo })
   }
 }
 
