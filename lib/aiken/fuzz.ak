@@ -565,9 +565,9 @@ pub fn map9(
                                 when fuzz_h(s7) is {
                                   Some((s8, h)) ->
                                     when fuzz_j(s8) is {
-                                      Some((s8, j)) ->
+                                      Some((s9, j)) ->
                                         Some(
-                                          (s8, func(a, b, c, d, e, f, g, h, j)),
+                                          (s9, func(a, b, c, d, e, f, g, h, j)),
                                         )
                                       None -> None
                                     }
