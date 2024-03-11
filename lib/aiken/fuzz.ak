@@ -1,8 +1,8 @@
 use aiken/builtin
-use aiken/list
-use aiken/math
 use aiken/bytearray
 use aiken/hash.{blake2b_256}
+use aiken/list
+use aiken/math
 
 // Internal
 
@@ -117,33 +117,33 @@ pub fn int() -> Fuzzer<Int> {
           Some((Seeded { seed: builtin.blake2b_256(seed), choices }, choice))
         }
           |> fn(return) {
-               if fst_choice < 128 {
-                 return(fst_choice, builtin.cons_bytearray(fst_choice, choices))
-               } else if fst_choice < 224 {
-                 return(
-                   fst_choice % 16,
-                   builtin.cons_bytearray(fst_choice % 16, choices),
-                 )
-               } else if fst_choice < 236 {
-                 let snd_choice = builtin.index_bytearray(seed, 1)
-                 return(
-                   -snd_choice,
-                   builtin.cons_bytearray(
-                     snd_choice,
-                     builtin.cons_bytearray(fst_choice, choices),
-                   ),
-                 )
-               } else {
-                 let snd_choice = builtin.index_bytearray(seed, 1)
-                 return(
-                   u16(fst_choice, snd_choice),
-                   builtin.cons_bytearray(
-                     snd_choice,
-                     builtin.cons_bytearray(fst_choice, choices),
-                   ),
-                 )
-               }
-             }
+              if fst_choice < 128 {
+                return(fst_choice, builtin.cons_bytearray(fst_choice, choices))
+              } else if fst_choice < 224 {
+                return(
+                  fst_choice % 16,
+                  builtin.cons_bytearray(fst_choice % 16, choices),
+                )
+              } else if fst_choice < 236 {
+                let snd_choice = builtin.index_bytearray(seed, 1)
+                return(
+                  -snd_choice,
+                  builtin.cons_bytearray(
+                    snd_choice,
+                    builtin.cons_bytearray(fst_choice, choices),
+                  ),
+                )
+              } else {
+                let snd_choice = builtin.index_bytearray(seed, 1)
+                return(
+                  u16(fst_choice, snd_choice),
+                  builtin.cons_bytearray(
+                    snd_choice,
+                    builtin.cons_bytearray(fst_choice, choices),
+                  ),
+                )
+              }
+            }
       }
 
       Replayed { cursor, choices } ->
@@ -171,15 +171,15 @@ pub fn int() -> Fuzzer<Int> {
 }
 
 pub fn positive_int() -> Fuzzer<Int> {
-    int() |> map(math.abs) |> map(fn(x) { x + 1 })
+  int() |> map(math.abs) |> map(fn(x) { x + 1 })
 }
 
 pub fn nonnegative_int() -> Fuzzer<Int> {
-    int() |> map(math.abs)
+  int() |> map(math.abs)
 }
 
 pub fn negative_int() -> Fuzzer<Int> {
-    int() |> map(fn(x) { -math.abs(x + 1) })
+  int() |> map(fn(x) { -math.abs(x + 1) })
 }
 
 pub fn int_between(min: Int, max: Int) -> Fuzzer<Int> {
@@ -192,37 +192,37 @@ pub fn int_between(min: Int, max: Int) -> Fuzzer<Int> {
     let delta = ( max - min ) / 2
     int()
       |> and_then(
-           fn(lo) {
-             int()
-               |> map(fn(hi) { mid - lo % ( delta + 1 ) + hi % ( delta + 1 ) })
-           },
-         )
+          fn(lo) {
+            int()
+              |> map(fn(hi) { mid - lo % ( delta + 1 ) + hi % ( delta + 1 ) })
+          },
+        )
   }
 }
 
 pub fn uniform(bits: Int) -> Fuzzer<Int> {
-    if bits == 0 {
-        constant(0)
+  if bits == 0 {
+    constant(0)
+  } else {
+    let bit <- and_then(bool())
+    let rest <- and_then(uniform(bits - 1))
+    if bit {
+      constant(rest * 2 + 1)
     } else {
-        let bit <- and_then(bool())
-        let rest <- and_then(uniform(bits - 1))
-        if bit {
-            constant(rest * 2 + 1)
-        } else {
-            constant(rest * 2)
-        }
+      constant(rest * 2)
     }
+  }
 }
 
 pub fn byte() -> Fuzzer<ByteArray> {
-    let byte <- and_then(int_between(0, 255))
-    constant(bytearray.push(#"", byte))
+  let byte <- and_then(int_between(0, 255))
+  constant(bytearray.push(#"", byte))
 }
 
 pub fn hash() -> Fuzzer<ByteArray> {
-    let b <- and_then(byte())
-    let hash = blake2b_256(b)
-    constant(bytearray.take(hash, 28))
+  let b <- and_then(byte())
+  let hash = blake2b_256(b)
+  constant(bytearray.take(hash, 28))
 }
 
 /// Generate a random list of elements from a given element.
@@ -230,7 +230,10 @@ pub fn list(fuzzer: Fuzzer<a>) -> Fuzzer<List<a>> {
   list_between(fuzzer, 0, 32)
 }
 
-pub fn sorted(fuzzer: Fuzzer<List<a>>, compare: fn(a, a) -> Ordering) -> Fuzzer<List<a>> {
+pub fn sorted(
+  fuzzer: Fuzzer<List<a>>,
+  compare: fn(a, a) -> Ordering,
+) -> Fuzzer<List<a>> {
   let ls <- and_then(fuzzer)
   constant(list.sort(ls, compare))
 }
@@ -258,38 +261,38 @@ fn do_list_between(avg, fuzzer, min, max, length, xs) -> Fuzzer<List<a>> {
     with_choice(min_rand)
       |> and_then(always(fuzzer, _))
       |> and_then(
-           fn(x) {
-             do_list_between(avg, fuzzer, min, max, length + 1, [x, ..xs])
-           },
-         )
+          fn(x) {
+            do_list_between(avg, fuzzer, min, max, length + 1, [x, ..xs])
+          },
+        )
   } else if length >= max {
     with_choice(max_rand)
       |> map(fn(_) { xs })
   } else {
     rand
       |> and_then(
-           fn(n) {
-             // This is the probability above but simplified to use only
-             // multiplications since division on-chain is expensive.
-             if n + n * avg <= max_rand * avg {
-               fuzzer
-                 |> and_then(
-                      fn(x) {
-                        do_list_between(
-                          avg,
-                          fuzzer,
-                          min,
-                          max,
-                          length + 1,
-                          [x, ..xs],
-                        )
-                      },
-                    )
-             } else {
-               constant(xs)
-             }
-           },
-         )
+          fn(n) {
+            // This is the probability above but simplified to use only
+            // multiplications since division on-chain is expensive.
+            if n + n * avg <= max_rand * avg {
+              fuzzer
+                |> and_then(
+                    fn(x) {
+                      do_list_between(
+                        avg,
+                        fuzzer,
+                        min,
+                        max,
+                        length + 1,
+                        [x, ..xs],
+                      )
+                    },
+                  )
+            } else {
+              constant(xs)
+            }
+          },
+        )
   }
 }
 
@@ -301,20 +304,33 @@ pub fn one_of(xs: List<a>) -> Fuzzer<a> {
   expect len > 0
   uniform(math.log(len, 2) + 1)
     |> map(
-         fn(ix: Int) {
-           expect Some(item) = list.at(xs, ix % len)
-           item
-         },
-       )
+        fn(ix: Int) {
+          expect Some(item) = list.at(xs, ix % len)
+          item
+        },
+      )
 }
 
 // Combining Fuzzers
 
 pub fn either(fuzz_a: Fuzzer<a>, fuzz_b: Fuzzer<a>) -> Fuzzer<a> {
-  bool() |> and_then(fn(b) { if b { fuzz_a } else { fuzz_b } })
+  bool()
+    |> and_then(
+        fn(b) {
+          if b {
+            fuzz_a
+          } else {
+            fuzz_b
+          }
+        },
+      )
 }
 
-pub fn lexographical(fuzz_a: Fuzzer<a>, fuzz_b: Fuzzer<a>, compare: fn(a, a) -> Ordering) -> Fuzzer<(a,a)> {
+pub fn lexographical(
+  fuzz_a: Fuzzer<a>,
+  fuzz_b: Fuzzer<a>,
+  compare: fn(a, a) -> Ordering,
+) -> Fuzzer<(a, a)> {
   let a <- and_then(fuzz_a)
   let b <- and_then(fuzz_b)
   if compare(a, b) == Greater {
@@ -327,14 +343,14 @@ pub fn lexographical(fuzz_a: Fuzzer<a>, fuzz_b: Fuzzer<a>, compare: fn(a, a) -> 
 pub fn option(fuzz_a: Fuzzer<a>) -> Fuzzer<Option<a>> {
   bool()
     |> and_then(
-         fn(predicate) {
-           if predicate {
-             fuzz_a |> map(Some)
-           } else {
-             constant(None)
-           }
-         },
-       )
+        fn(predicate) {
+          if predicate {
+            fuzz_a |> map(Some)
+          } else {
+            constant(None)
+          }
+        },
+      )
 }
 
 /// Combine a [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer) with the result of a another one.
@@ -664,6 +680,6 @@ pub fn map9(
 
 pub fn label(str: String) -> Void {
   str
-    |> builtin.append_string(@" ", _)
+    |> builtin.append_string(@"\0", _)
     |> builtin.debug(Void)
 }

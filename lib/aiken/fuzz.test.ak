@@ -1,7 +1,10 @@
-use aiken/fuzz.{bool, int, label, list, list_between, lexographical, sorted, positive_int, nonnegative_int, negative_int, uniform}
+use aiken/fuzz.{
+  bool, int, label, lexographical, list, list_between, negative_int,
+  nonnegative_int, positive_int, sorted, uniform,
+}
+use aiken/int
 use aiken/list
 use aiken/math
-use aiken/int
 use aiken/string
 
 test prop_int_distribution(n via int()) {
