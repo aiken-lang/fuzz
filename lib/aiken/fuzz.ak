@@ -1,5 +1,8 @@
 use aiken/builtin
 use aiken/list
+use aiken/math
+use aiken/bytearray
+use aiken/hash.{blake2b_256}
 
 // Internal
 
@@ -95,11 +98,12 @@ pub fn bool() -> Fuzzer<Bool> {
 }
 
 pub fn bytearray() -> Fuzzer<ByteArray> {
-  fail
+  bytearray_between(0, 1024)
 }
 
-pub fn bytearray_between(_min: Int, _max: Int) -> Fuzzer<ByteArray> {
-  fail
+pub fn bytearray_between(min: Int, max: Int) -> Fuzzer<ByteArray> {
+  let bytes <- and_then(list_between(byte(), min, max))
+  constant(list.foldl(bytes, #"", bytearray.concat))
 }
 
 /// Generate a random integer value. It favors small values near zero, but generate across the whole range [-2^64; 2^64 - 1]
@@ -166,6 +170,18 @@ pub fn int() -> Fuzzer<Int> {
   }
 }
 
+pub fn positive_int() -> Fuzzer<Int> {
+    int() |> map(math.abs) |> map(fn(x) { x + 1 })
+}
+
+pub fn nonnegative_int() -> Fuzzer<Int> {
+    int() |> map(math.abs)
+}
+
+pub fn negative_int() -> Fuzzer<Int> {
+    int() |> map(fn(x) { -math.abs(x + 1) })
+}
+
 pub fn int_between(min: Int, max: Int) -> Fuzzer<Int> {
   if max < min {
     int_between(max, min)
@@ -184,9 +200,39 @@ pub fn int_between(min: Int, max: Int) -> Fuzzer<Int> {
   }
 }
 
+pub fn uniform(bits: Int) -> Fuzzer<Int> {
+    if bits == 0 {
+        constant(0)
+    } else {
+        let bit <- and_then(bool())
+        let rest <- and_then(uniform(bits - 1))
+        if bit {
+            constant(rest * 2 + 1)
+        } else {
+            constant(rest * 2)
+        }
+    }
+}
+
+pub fn byte() -> Fuzzer<ByteArray> {
+    let byte <- and_then(int_between(0, 255))
+    constant(bytearray.push(#"", byte))
+}
+
+pub fn hash() -> Fuzzer<ByteArray> {
+    let b <- and_then(byte())
+    let hash = blake2b_256(b)
+    constant(bytearray.take(hash, 28))
+}
+
 /// Generate a random list of elements from a given element.
 pub fn list(fuzzer: Fuzzer<a>) -> Fuzzer<List<a>> {
   list_between(fuzzer, 0, 32)
+}
+
+pub fn sorted(fuzzer: Fuzzer<List<a>>, compare: fn(a, a) -> Ordering) -> Fuzzer<List<a>> {
+  let ls <- and_then(fuzzer)
+  constant(list.sort(ls, compare))
 }
 
 /// Generate a random list of elements with length within specified bounds.
@@ -253,10 +299,10 @@ fn do_list_between(avg, fuzzer, min, max, length, xs) -> Fuzzer<List<a>> {
 pub fn one_of(xs: List<a>) -> Fuzzer<a> {
   let len = list.length(xs)
   expect len > 0
-  int_between(0, len - 1)
+  uniform(math.log(len, 2) + 1)
     |> map(
          fn(ix: Int) {
-           expect Some(item) = list.at(xs, ix)
+           expect Some(item) = list.at(xs, ix % len)
            item
          },
        )
@@ -264,8 +310,18 @@ pub fn one_of(xs: List<a>) -> Fuzzer<a> {
 
 // Combining Fuzzers
 
-pub fn either(_fuzz_a: Fuzzer<a>, _fuzz_b: Fuzzer<a>) -> Fuzzer<a> {
-  fail
+pub fn either(fuzz_a: Fuzzer<a>, fuzz_b: Fuzzer<a>) -> Fuzzer<a> {
+  bool() |> and_then(fn(b) { if b { fuzz_a } else { fuzz_b } })
+}
+
+pub fn lexographical(fuzz_a: Fuzzer<a>, fuzz_b: Fuzzer<a>, compare: fn(a, a) -> Ordering) -> Fuzzer<(a,a)> {
+  let a <- and_then(fuzz_a)
+  let b <- and_then(fuzz_b)
+  if compare(a, b) == Greater {
+    constant((b, a))
+  } else {
+    constant((a, b))
+  }
 }
 
 pub fn option(fuzz_a: Fuzzer<a>) -> Fuzzer<Option<a>> {
