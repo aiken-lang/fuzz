@@ -1,6 +1,7 @@
 use aiken/fuzz.{
-  bool, int, label, lexographical, list, list_between, negative_int,
-  nonnegative_int, positive_int, sorted, uniform,
+  bool, int, label, lexographical, list, list_between, list_with_elem,
+  list_with_subset, negative_int, nonempty_list, nonnegative_int, positive_int,
+  sorted, uniform,
 }
 use aiken/int
 use aiken/list
@@ -54,6 +55,10 @@ test prop_list_int_shrink(xs via list_between(int(), 32, 32)) fail {
   below_255 >= 32
 }
 
+test prop_nonempty_list(xs via nonempty_list(int())) {
+  list.length(xs) > 0
+}
+
 test prop_test_lexographical(pair via lexographical(int(), int(), int.compare)) {
   let (a, b) = pair
   a <= b
@@ -80,4 +85,14 @@ test prop_uniform(u via uniform(8)) {
   // TODO: this reveals that uniform isn't so uniform, investigate why
   label(string.from_int(u % 8))
   True
+}
+
+test prop_list_with_elem(xs via list_with_elem(int())) {
+  let (xs, x) = xs
+  list.has(xs, x)
+}
+
+test prop_list_with_subset(xs via list_with_subset(int())) {
+  let (xs, ys) = xs
+  list.all(ys, fn(y) { list.has(xs, y) })
 }

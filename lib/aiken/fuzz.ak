@@ -201,6 +201,7 @@ pub fn int_between(min: Int, max: Int) -> Fuzzer<Int> {
 }
 
 pub fn uniform(bits: Int) -> Fuzzer<Int> {
+  // TODO: switch to Han-Hoshi for better uniform, and support min/max?
   if bits == 0 {
     constant(0)
   } else {
@@ -230,12 +231,37 @@ pub fn list(fuzzer: Fuzzer<a>) -> Fuzzer<List<a>> {
   list_between(fuzzer, 0, 32)
 }
 
+pub fn nonempty_list(fuzzer: Fuzzer<a>) -> Fuzzer<List<a>> {
+  list_between(fuzzer, 1, 32)
+}
+
 pub fn sorted(
   fuzzer: Fuzzer<List<a>>,
   compare: fn(a, a) -> Ordering,
 ) -> Fuzzer<List<a>> {
   let ls <- and_then(fuzzer)
   constant(list.sort(ls, compare))
+}
+
+pub fn list_with_elem(fuzzer: Fuzzer<a>) -> Fuzzer<(List<a>, a)> {
+  let xs <- and_then(nonempty_list(fuzzer))
+  let x <- and_then(one_of(xs))
+  constant((xs, x))
+}
+
+pub fn list_with_subset(fuzzer: Fuzzer<a>) -> Fuzzer<(List<a>, List<a>)> {
+  let xs <- and_then(list(fuzzer))
+  let bits <- and_then(list_between(bool(), 0, list.length(xs)))
+  let ys =
+    list.filter(
+      list.zip(xs, bits),
+      fn(pair) {
+        let (_, b) = pair
+        b
+      },
+    )
+  let (ys, _) = list.unzip(ys)
+  constant((xs, ys))
 }
 
 /// Generate a random list of elements with length within specified bounds.
