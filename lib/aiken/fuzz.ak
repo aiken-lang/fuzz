@@ -264,6 +264,45 @@ pub fn list_with_subset(fuzzer: Fuzzer<a>) -> Fuzzer<(List<a>, List<a>)> {
   constant((xs, ys))
 }
 
+pub fn filter(fuzzer: Fuzzer<a>, predicate: fn(a) -> Bool) -> Fuzzer<a> {
+  do_filter(fuzzer, predicate, 100)
+}
+
+fn do_filter(
+  fuzzer: Fuzzer<a>,
+  predicate: fn(a) -> Bool,
+  max_tries: Int,
+) -> Fuzzer<a> {
+  if max_tries <= 0 {
+    fail
+  } else {
+    let x <- and_then(fuzzer)
+    if predicate(x) {
+      constant(x)
+    } else {
+      do_filter(fuzzer, predicate, max_tries - 1)
+    }
+  }
+}
+
+pub fn distinct(fuzzer: Fuzzer<List<a>>) -> Fuzzer<List<a>> {
+  let xs <- and_then(fuzzer)
+  constant(dedup(xs, []))
+}
+
+fn dedup(xs: List<a>, seen: List<a>) -> List<a> {
+  when xs is {
+    [] ->
+      []
+    [x, ..xs] ->
+      if list.has(seen, x) {
+        dedup(xs, seen)
+      } else {
+        [x, ..dedup(xs, [x, ..seen])]
+      }
+  }
+}
+
 /// Generate a random list of elements with length within specified bounds.
 pub fn list_between(fuzzer: Fuzzer<a>, min: Int, max: Int) -> Fuzzer<List<a>> {
   if min > max {

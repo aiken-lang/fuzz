@@ -1,7 +1,7 @@
 use aiken/fuzz.{
-  bool, int, label, lexographical, list, list_between, list_with_elem,
-  list_with_subset, negative_int, nonempty_list, nonnegative_int, positive_int,
-  sorted, uniform,
+  bool, distinct, filter, int, int_between, label, lexographical, list,
+  list_between, list_with_elem, list_with_subset, negative_int, nonempty_list,
+  nonnegative_int, positive_int, sorted, uniform,
 }
 use aiken/int
 use aiken/list
@@ -55,6 +55,14 @@ test prop_list_int_shrink(xs via list_between(int(), 32, 32)) fail {
   below_255 >= 32
 }
 
+fn is_even(x: Int) -> Bool {
+  x % 2 == 0
+}
+
+test prop_filter(x via filter(int(), is_even)) {
+  is_even(x)
+}
+
 test prop_nonempty_list(xs via nonempty_list(int())) {
   list.length(xs) > 0
 }
@@ -95,4 +103,14 @@ test prop_list_with_elem(xs via list_with_elem(int())) {
 test prop_list_with_subset(xs via list_with_subset(int())) {
   let (xs, ys) = xs
   list.all(ys, fn(y) { list.has(xs, y) })
+}
+
+test prop_distinct_list(xs via distinct(list(bool()))) {
+  list.length(xs) <= 2
+}
+
+test prop_distinct_list_2(
+  xs via distinct(list_between(int_between(0, 9), 0, 100)),
+) {
+  list.length(xs) <= 10
 }
