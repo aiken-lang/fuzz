@@ -391,7 +391,7 @@ pub fn either(fuzz_a: Fuzzer<a>, fuzz_b: Fuzzer<a>) -> Fuzzer<a> {
       )
 }
 
-pub fn lexographical(
+pub fn ordered_pair(
   fuzz_a: Fuzzer<a>,
   fuzz_b: Fuzzer<a>,
   compare: fn(a, a) -> Ordering,

@@ -1,5 +1,5 @@
 use aiken/fuzz.{
-  bool, distinct, filter, int, int_between, label, lexographical, list,
+  bool, distinct, filter, int, int_between, label, ordered_pair, list,
   list_between, list_with_elem, list_with_subset, negative_int, nonempty_list,
   nonnegative_int, positive_int, sorted, uniform,
 }
@@ -67,7 +67,7 @@ test prop_nonempty_list(xs via nonempty_list(int())) {
   list.length(xs) > 0
 }
 
-test prop_test_lexographical(pair via lexographical(int(), int(), int.compare)) {
+test prop_test_ordered_pair(pair via ordered_pair(int(), int(), int.compare)) {
   let (a, b) = pair
   a <= b
 }
