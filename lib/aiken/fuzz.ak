@@ -3,130 +3,6 @@ use aiken/list
 use aiken/math
 use aiken/option
 
-// Internal
-
-const max_rand = 255
-
-const min_rand = 0
-
-//. A choice made from a Pseudo-random number generator. The generator can come in two shapes:
-///
-/// - Either it is `Seeded`, in which case leverage the pseudo-randomness of hashing algorithms to generate a value and a new seed.
-///
-/// - Or it is `Replayed` in case where we're trying to shrink a known counter-example. Because a `Replayed` generator has usually been altered, it isn't guaranteed to be a valid sequence. It is possible, for example, that we run out of values to draw from.
-///
-/// Either ways, the PRNG's choices are *always* non-negative integers.
-fn rand(prng: PRNG) -> Option<(PRNG, Int)> {
-  when prng is {
-    Seeded { seed, choices } -> {
-      let choice =
-        seed
-          |> builtin.index_bytearray(0)
-
-      Some(
-        (
-          Seeded {
-            seed: builtin.blake2b_256(seed),
-            choices: builtin.cons_bytearray(choice, choices),
-          },
-          choice,
-        ),
-      )
-    }
-
-    Replayed { cursor, choices } ->
-      if cursor >= 1 {
-        let cursor = cursor - 1
-        Some(
-          (
-            Replayed { choices, cursor },
-            builtin.index_bytearray(choices, cursor),
-          ),
-        )
-      } else {
-        None
-      }
-  }
-}
-
-fn rand_n(bits: Int, prng: PRNG) -> Option<(PRNG, Int)> {
-  let (prng, buffer) <- option.map(do_rand_n("", bits, prng))
-  (prng, builtin.bytearray_to_integer(True, buffer))
-}
-
-fn do_rand_n(
-  buffer: ByteArray,
-  bits: Int,
-  prng: PRNG,
-) -> Option<(PRNG, ByteArray)> {
-  let (prng, n) <- option.and_then(rand(prng))
-  if bits <= 8 {
-    Some((prng, builtin.cons_bytearray(n % math.pow2(bits), buffer)))
-  } else {
-    do_rand_n(builtin.cons_bytearray(n, buffer), bits - 8, prng)
-  }
-}
-
-fn rand_n_fixture() -> Fuzzer<(Int, Int)> {
-  let bits <-
-    and_then(
-      either(
-        constant(1),
-        either(constant(5), either(constant(8), constant(25))),
-      ),
-    )
-  let n <- map(rand_n(bits, _))
-  (bits, n)
-}
-
-test prop_rand_n(fixture via rand_n_fixture()) {
-  let (bits, n) = fixture
-  n >= 0 && n < math.pow2(bits)
-}
-
-test rand_n_distribution_20(n via rand_n(20, _)) {
-  label(
-    if n < 256 {
-      // 256 / 2^20
-      @"~ 0.025%"
-    } else if n < 65536 {
-      // (2^16 - 2^8) / 2^20
-      @"~ 6.225%"
-    } else {
-      // (2^20 - 2^16) / 2^20
-      @"~ 93.75%"
-    },
-  )
-
-  True
-}
-
-fn with_choice(choice: Int) -> Fuzzer<Int> {
-  fn(prng) {
-    when prng is {
-      Seeded { seed, choices } ->
-        Some(
-          (
-            Seeded { seed, choices: builtin.cons_bytearray(choice, choices) },
-            choice,
-          ),
-        )
-      Replayed { cursor, choices } ->
-        if cursor >= 1 {
-          let cursor = cursor - 1
-          let drawn = builtin.index_bytearray(choices, cursor)
-          if choice == drawn {
-            Some((Replayed { choices, cursor }, choice))
-          } else {
-            None
-          }
-        } else {
-          None
-        }
-    }
-  }
-}
-
 // Primitives
 
 /// Create a constant [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer) from an arbitrary value.
@@ -134,7 +10,14 @@ pub fn constant(a: a) -> Fuzzer<a> {
   fn(s0) { Some((s0, a)) }
 }
 
-/// Generate a random `Bool` value.
+/// Generate a random [`Bool`](https://aiken-lang.github.io/prelude/aiken.html#Bool) value from a
+/// uniform distribution.
+///
+/// ```aiken
+/// test prop_bool(is_true via fuzz.bool()) {
+///   is_true || !is_true
+/// }
+/// ```
 pub fn bool() -> Fuzzer<Bool> {
   rand |> map(fn(n) { n % 2 == 0 })
 }
@@ -349,9 +232,11 @@ fn do_list_between(p, q, fuzzer, min, max, length, xs) -> Fuzzer<List<a>> {
   }
 }
 
-// Will error on an empty list
-/// Fuzzing types from aiken prelude
-/// Fuzzer that chooses an item from a list.
+/// Pick a value from a (non-empty!) list with equal probability.
+///
+/// ```aiken
+/// let any_bool = fuzz.one_of([True, False])
+/// ```
 pub fn one_of(xs: List<a>) -> Fuzzer<a> {
   let len = list.length(xs)
   expect len > 0
@@ -366,6 +251,7 @@ pub fn one_of(xs: List<a>) -> Fuzzer<a> {
 
 // Combining Fuzzers
 
+/// Choose either of two fuzzers with an equal probability.
 pub fn either(left: Fuzzer<a>, right: Fuzzer<a>) -> Fuzzer<a> {
   let pick_left <- and_then(bool())
   if pick_left {
@@ -375,10 +261,12 @@ pub fn either(left: Fuzzer<a>, right: Fuzzer<a>) -> Fuzzer<a> {
   }
 }
 
+/// Combine two fuzzers into a 2-tuple.
 pub fn both(left: Fuzzer<a>, right: Fuzzer<b>) -> Fuzzer<(a, b)> {
   map2(left, right, fn(l, r) { (l, r) })
 }
 
+/// Choose between `None` or `Some` value with an equal probability.
 pub fn option(fuzz_a: Fuzzer<a>) -> Fuzzer<Option<a>> {
   bool()
     |> and_then(
@@ -393,6 +281,18 @@ pub fn option(fuzz_a: Fuzzer<a>) -> Fuzzer<Option<a>> {
 }
 
 /// Combine a [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer) with the result of a another one.
+/// This function works great with [backpassing](https://aiken-lang.org/language-tour/functions#backpassing-).
+///
+/// ```aiken
+/// pub fn either(left: Fuzzer<a>, right: Fuzzer<a>) -> Fuzzer<a> {
+///   let pick_left <- fuzz.and_then(fuzz.bool())
+///   if pick_left {
+///     left
+///   } else {
+///     right
+///   }
+/// }
+/// ```
 pub fn and_then(fuzz_a: Fuzzer<a>, f: fn(a) -> Fuzzer<b>) -> Fuzzer<b> {
   fn(s0) {
     when fuzz_a(s0) is {
@@ -403,6 +303,14 @@ pub fn and_then(fuzz_a: Fuzzer<a>, f: fn(a) -> Fuzzer<b>) -> Fuzzer<b> {
 }
 
 /// Transform the result of a [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer) using a function.
+/// This function works great with [backpassing](https://aiken-lang.org/language-tour/functions#backpassing-).
+///
+/// ```aiken
+/// fn bool() -> Fuzzer<Bool> {
+///   let n <- map(int_between(1, 100))
+///   n % 2
+/// }
+/// ```
 pub fn map(fuzz_a: Fuzzer<a>, f: fn(a) -> b) -> Fuzzer<b> {
   fn(s0) {
     when fuzz_a(s0) is {
@@ -412,7 +320,7 @@ pub fn map(fuzz_a: Fuzzer<a>, f: fn(a) -> b) -> Fuzzer<b> {
   }
 }
 
-/// Combine the results of two [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s
+/// Combine the results of two [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s.
 pub fn map2(
   fuzz_0: Fuzzer<t0>,
   fuzz_1: Fuzzer<t1>,
@@ -430,7 +338,7 @@ pub fn map2(
   }
 }
 
-/// Combine the results of three [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s
+/// Combine the results of three [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s.
 pub fn map3(
   fuzz_0: Fuzzer<t0>,
   fuzz_1: Fuzzer<t1>,
@@ -453,7 +361,7 @@ pub fn map3(
   }
 }
 
-/// Combine the results of four [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s
+/// Combine the results of four [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s.
 pub fn map4(
   fuzz_0: Fuzzer<t0>,
   fuzz_1: Fuzzer<t1>,
@@ -481,7 +389,7 @@ pub fn map4(
   }
 }
 
-/// Combine the results of five [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s
+/// Combine the results of five [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s.
 pub fn map5(
   fuzz_0: Fuzzer<t0>,
   fuzz_1: Fuzzer<t1>,
@@ -514,7 +422,7 @@ pub fn map5(
   }
 }
 
-/// Combine the results of six [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s
+/// Combine the results of six [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s.
 pub fn map6(
   fuzz_0: Fuzzer<t0>,
   fuzz_1: Fuzzer<t1>,
@@ -553,7 +461,7 @@ pub fn map6(
   }
 }
 
-/// Combine the results of seven [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s
+/// Combine the results of seven [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s.
 pub fn map7(
   fuzz_0: Fuzzer<t0>,
   fuzz_1: Fuzzer<t1>,
@@ -597,7 +505,7 @@ pub fn map7(
   }
 }
 
-/// Combine the results of eight [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s
+/// Combine the results of eight [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s.
 pub fn map8(
   fuzz_0: Fuzzer<t0>,
   fuzz_1: Fuzzer<t1>,
@@ -648,7 +556,7 @@ pub fn map8(
   }
 }
 
-/// Combine the results of nine [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s
+/// Combine the results of nine [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer)s.
 pub fn map9(
   fuzz_0: Fuzzer<t0>,
   fuzz_1: Fuzzer<t1>,
@@ -717,12 +625,49 @@ pub fn map9(
   }
 }
 
+/// Label a test case. Labels are collected at the end of a property run and a
+/// distribution amongst all labels is computed and shown. This is particularly
+/// useful to assert that specific scenarios are met or to test your fuzzers.
+///
+/// ```aiken
+/// test prop_bool_distribution(is_true via bool()) {
+///   label(
+///     if is_true {
+///       @"True"
+///     } else {
+///       @"False"
+///     },
+///   )
+///
+///   True
+/// }
+/// ```
 pub fn label(str: String) -> Void {
   str
     |> builtin.append_string(@"\0", _)
     |> builtin.debug(Void)
 }
 
+/// Apply a label when a predicate is true, or fallback to a default label.
+/// Useful for labelling specific scenarios based on a predicate.
+///
+/// ```aiken
+/// test prop_u16(operands via fuzz.both(uint8(), uint8())) {
+///   let (msb, lsb) = operands
+///   fuzz.label_when(msb == 0, @"msb = 0", @"default")
+///   fuzz.label_when(lsb == 0, @"lsb = 0", @"default")
+///   builtin.bytearray_to_integer(
+///     False,
+///     ""
+///       |> builtin.cons_bytearray(msb, _)
+///       |> builtin.cons_bytearray(lsb, _),
+///   ) == msb * 256 + lsb
+/// }
+///
+/// fn uint8() -> Fuzz<Int> {
+///   fuzz.int_between(0, 255)
+/// }
+/// ```
 pub fn label_when(predicate: Bool, str: String, default: String) -> Void {
   if predicate {
     label(str)
@@ -732,6 +677,128 @@ pub fn label_when(predicate: Bool, str: String, default: String) -> Void {
 }
 
 // Internal
+
+const max_rand = 255
+
+const min_rand = 0
+
+//. A choice made from a Pseudo-random number generator. The generator can come in two shapes:
+///
+/// - Either it is `Seeded`, in which case leverage the pseudo-randomness of hashing algorithms to generate a value and a new seed.
+///
+/// - Or it is `Replayed` in case where we're trying to shrink a known counter-example. Because a `Replayed` generator has usually been altered, it isn't guaranteed to be a valid sequence. It is possible, for example, that we run out of values to draw from.
+///
+/// Either ways, the PRNG's choices are *always* non-negative integers.
+fn rand(prng: PRNG) -> Option<(PRNG, Int)> {
+  when prng is {
+    Seeded { seed, choices } -> {
+      let choice =
+        seed
+          |> builtin.index_bytearray(0)
+
+      Some(
+        (
+          Seeded {
+            seed: builtin.blake2b_256(seed),
+            choices: builtin.cons_bytearray(choice, choices),
+          },
+          choice,
+        ),
+      )
+    }
+
+    Replayed { cursor, choices } ->
+      if cursor >= 1 {
+        let cursor = cursor - 1
+        Some(
+          (
+            Replayed { choices, cursor },
+            builtin.index_bytearray(choices, cursor),
+          ),
+        )
+      } else {
+        None
+      }
+  }
+}
+
+fn rand_n(bits: Int, prng: PRNG) -> Option<(PRNG, Int)> {
+  let (prng, buffer) <- option.map(do_rand_n("", bits, prng))
+  (prng, builtin.bytearray_to_integer(True, buffer))
+}
+
+fn do_rand_n(
+  buffer: ByteArray,
+  bits: Int,
+  prng: PRNG,
+) -> Option<(PRNG, ByteArray)> {
+  let (prng, n) <- option.and_then(rand(prng))
+  if bits <= 8 {
+    Some((prng, builtin.cons_bytearray(n % math.pow2(bits), buffer)))
+  } else {
+    do_rand_n(builtin.cons_bytearray(n, buffer), bits - 8, prng)
+  }
+}
+
+fn rand_n_fixture() -> Fuzzer<(Int, Int)> {
+  let bits <-
+    and_then(
+      either(
+        constant(1),
+        either(constant(5), either(constant(8), constant(25))),
+      ),
+    )
+  let n <- map(rand_n(bits, _))
+  (bits, n)
+}
+
+test prop_rand_n(fixture via rand_n_fixture()) {
+  let (bits, n) = fixture
+  n >= 0 && n < math.pow2(bits)
+}
+
+test rand_n_distribution_20(n via rand_n(20, _)) {
+  label(
+    if n < 256 {
+      // 256 / 2^20
+      @"~ 0.025%"
+    } else if n < 65536 {
+      // (2^16 - 2^8) / 2^20
+      @"~ 6.225%"
+    } else {
+      // (2^20 - 2^16) / 2^20
+      @"~ 93.75%"
+    },
+  )
+
+  True
+}
+
+fn with_choice(choice: Int) -> Fuzzer<Int> {
+  fn(prng) {
+    when prng is {
+      Seeded { seed, choices } ->
+        Some(
+          (
+            Seeded { seed, choices: builtin.cons_bytearray(choice, choices) },
+            choice,
+          ),
+        )
+      Replayed { cursor, choices } ->
+        if cursor >= 1 {
+          let cursor = cursor - 1
+          let drawn = builtin.index_bytearray(choices, cursor)
+          if choice == drawn {
+            Some((Replayed { choices, cursor }, choice))
+          } else {
+            None
+          }
+        } else {
+          None
+        }
+    }
+  }
+}
 
 fn log2(x: Int) -> Int {
   expect x > 0
@@ -768,12 +835,6 @@ test unit_log2_1() {
     log2(511) == 8,
     log2(1025) == 10,
   }
-}
-
-fn uint(bits: Int) -> Fuzzer<Int> {
-  expect bits > 0
-  expect bits <= 256
-  rand_n(bits, _)
 }
 
 /// Construct a larger int from two u8 operands.
