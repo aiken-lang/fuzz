@@ -1,6 +1,7 @@
 use aiken/builtin
 use aiken/list
 use aiken/math
+use aiken/option
 
 // Internal
 
@@ -48,46 +49,56 @@ fn rand(prng: PRNG) -> Option<(PRNG, Int)> {
   }
 }
 
-fn rand_n(n_bits: Int, prng: PRNG) -> Option<(PRNG, Int)> {
-  let n_bytes = n_bits - 1 / 8 + 1
-  let ub = math.pow2(n_bits)
-  when prng is {
-    Seeded { seed, choices } -> {
-      let segment =
-        seed
-          |> builtin.slice_bytearray(0, n_bytes, _)
-      let choice =
-        segment
-          |> builtin.bytearray_to_integer(True, _)
-          |> builtin.mod_integer(ub)
+fn rand_n(bits: Int, prng: PRNG) -> Option<(PRNG, Int)> {
+  let (prng, buffer) <- option.map(do_rand_n("", bits, prng))
+  (prng, builtin.bytearray_to_integer(True, buffer))
+}
 
-      Some(
-        (
-          Seeded {
-            seed: builtin.blake2b_256(seed),
-            choices: builtin.append_bytearray(segment, choices),
-          },
-          choice,
-        ),
-      )
-    }
-
-    Replayed { cursor, choices } ->
-      if cursor >= 1 {
-        // FIXME :: WHICH WAY DOES THE CURSOR READ?!
-        let cursor = cursor - n_bytes
-        Some(
-          (
-            Replayed { choices, cursor },
-            builtin.slice_bytearray(cursor - n_bytes, n_bytes, choices)
-              |> builtin.bytearray_to_integer(True, _)
-              |> builtin.mod_integer(ub),
-          ),
-        )
-      } else {
-        None
-      }
+fn do_rand_n(
+  buffer: ByteArray,
+  bits: Int,
+  prng: PRNG,
+) -> Option<(PRNG, ByteArray)> {
+  let (prng, n) <- option.and_then(rand(prng))
+  if bits <= 8 {
+    Some((prng, builtin.cons_bytearray(n % math.pow2(bits), buffer)))
+  } else {
+    do_rand_n(builtin.cons_bytearray(n, buffer), bits - 8, prng)
   }
+}
+
+fn rand_n_fixture() -> Fuzzer<(Int, Int)> {
+  let bits <-
+    and_then(
+      either(
+        constant(1),
+        either(constant(5), either(constant(8), constant(25))),
+      ),
+    )
+  let n <- map(rand_n(bits, _))
+  (bits, n)
+}
+
+test prop_rand_n(fixture via rand_n_fixture()) {
+  let (bits, n) = fixture
+  n >= 0 && n < math.pow2(bits)
+}
+
+test rand_n_distribution_20(n via rand_n(20, _)) {
+  label(
+    if n < 256 {
+      // 256 / 2^20
+      @"~ 0.025%"
+    } else if n < 65536 {
+      // (2^16 - 2^8) / 2^20
+      @"~ 6.225%"
+    } else {
+      // (2^20 - 2^16) / 2^20
+      @"~ 93.75%"
+    },
+  )
+
+  True
 }
 
 fn with_choice(choice: Int) -> Fuzzer<Int> {
@@ -146,10 +157,10 @@ const int_bucket_negative: Int = 192
 /// generate across the range `[-255; 16383]` with the following distribution:
 ///
 /// ```
-/// (25.0%) [-255; 0[      ████████████
-/// ( 2.5%) 0              █
-/// (50.0%) ]0; 255]       █████████████████████████
-/// (22.5%) [256; 16383]   ██████████
+/// 25.0%  [-255; 0[      ████████████
+///  2.5%  0              █
+/// 50.0%  ]0; 255]       █████████████████████████
+/// 22.5%  [256; 16383]   ██████████
 /// ```
 ///
 /// The distribution is uniform within those buckets. If you need larger values, use [`int_between`](#int_between).
@@ -224,95 +235,104 @@ pub fn int() -> Fuzzer<Int> {
   }
 }
 
-pub fn int_between(lo: Int, hi: Int) -> Fuzzer<Int> {
-  if lo < hi {
-    int_between(lo, hi)
-  } else if lo == hi {
-    constant(lo)
+/// Generate integers values uniformly between a lower and upper bounds (both inclusive).
+pub fn int_between(min: Int, max: Int) -> Fuzzer<Int> {
+  if min > max {
+    int_between(max, min)
+  } else if min == max {
+    constant(min)
   } else {
-    let max = hi - lo
-    let max_pow2 = math.pow2(log2(max))
-    {
-      let n <- and_then(rand)
-      if n * max <= max_rand * max_pow2 {
-        todo @"uniform randomness in power-of-two bucket"
-      } else {
-        let offset <- map(int_between(0, max - max_pow2))
-        max_pow2 + offset
-      }
-    }
-      |> map(fn(n) { n + lo })
-  }
-}
-
-const p: Int = 50452517
-
-const q: Int = 36183557
-
-pub fn int_between_primes(min: Int, max: Int) -> Fuzzer<Int> {
-  if max < min {
-    int_between_primes(max, min)
-  } else if max == min {
-    constant(max)
-  } else {
-    let delta = max - min
-    if delta <= max_rand {
-      let n <- map(rand)
-      min + n % ( delta + 1 )
+    let range = max - min
+    let log2_floor = log2(range)
+    let threshold = math.pow2(log2_floor)
+    let n <- and_then(rand)
+    if n * range <= max_rand * threshold {
+      let offset <- map(rand_n(log2_floor, _))
+      offset + min
     } else {
-      let msb, lsb <- map2(rand, rand)
-      min + ( u16(msb, lsb) * p + q ) % ( delta + 1 )
+      let offset <- map(int_between(0, range - threshold))
+      threshold + offset + min
     }
   }
 }
 
-/// Generate a random list of elements from a given element.
+/// Generate a random list of elements from a given element. The list contains
+/// *at most `20`* elements, and has a higher probability of generating smaller lists.
+///
+/// For lists of a specific length, use [`list_between`](#list_between).
 pub fn list(fuzzer: Fuzzer<a>) -> Fuzzer<List<a>> {
-  list_between(fuzzer, 0, 32)
+  list_between(fuzzer, 0, 20)
 }
 
-/// Generate a random list of elements with length within specified bounds.
+/// Generate a random list of elements with length within specified bounds. The
+/// resulting list contains *at least `min`* elements and *at most `max`*
+/// elements, with a higher probability of generating smaller lists.
+///
+/// More specifically, there's approximately 1/n chance of generating n
+/// elements within the range. For example, the distribution when generating a
+/// list between 0 and 10 elements resemble the following:
+///
+/// ```
+/// 22.7%   0 elements  ████████
+/// 19.7%   1 element   ███████
+/// 13.5%   2 elements  █████
+///  9.5%   3 elements  ███
+///  6.3%   4 elements  ██
+///  5.6%   5 elements  ██
+///  5.6%   6 elements  ██
+///  4.0%   7 elements  █
+///  3.1%   8 elements  █
+///  2.0%   9 elements  █
+///  8.0%  10 elements  ███
+/// ```
 pub fn list_between(fuzzer: Fuzzer<a>, min: Int, max: Int) -> Fuzzer<List<a>> {
   if min > max {
     list_between(fuzzer, max, min)
   } else if max <= 0 {
     constant([])
   } else {
-    do_list_between(min + max / 2, fuzzer, min, max, 0, [])
+    do_list_between(max - min, log2(max - min), fuzzer, min, max, 0, [])
   }
 }
 
 // We generate a list by "flipping a coin" and generating the next element if we
-// got 'heads'. More mathematically, we consider the probability 1 - 1 / (1 + avg)
-// of generating another element.
+// got 'heads'.
 //
-// There are the special cases of 'min' and 'max' which may force us to add an element
-// or stop. For those, we still _fake making a choice_ so that even after shrinking the
-// choice sequence, we still generate lists that respect the given invariant.
-fn do_list_between(avg, fuzzer, min, max, length, xs) -> Fuzzer<List<a>> {
+// NOTE (2):
+//   More mathematically, we consider the probability exp(log(1/(n + 1))/n)
+//   of generating another element, where `n` is the maximum length of the list.
+//
+//   This gives a probability of generating a list of `n` elements of ~ 1/(n+1).
+//   So for example, for a list of maximum 2 elements, we have 33% chance of
+//   generating a list with 2 elements, 24% of 1 element, and 42% chances of
+//   generating an empty list.
+//
+//   We approximate this probability as: n/(n+3) which for values of n >= 0
+//   gives us a good enough approximation less expensive to compute.
+//
+// NOTE (1):
+//   There are the special cases of 'min' and 'max' which may force us to add an element
+//   or stop. For those, we still _fake making a choice_ so that even after shrinking the
+//   choice sequence, we still generate lists that respect the given invariant.
+fn do_list_between(p, q, fuzzer, min, max, length, xs) -> Fuzzer<List<a>> {
   if length < min {
-    with_choice(min_rand)
-      |> and_then(always(fuzzer, _))
-      |> and_then(
-          fn(x) {
-            do_list_between(avg, fuzzer, min, max, length + 1, [x, ..xs])
-          },
-        )
-  } else if length >= max {
-    with_choice(max_rand)
-      |> map(fn(_) { xs })
+    let x <- and_then(with_choice(min_rand) |> and_then(always(fuzzer, _)))
+    do_list_between(p, q, fuzzer, min, max, length + 1, [x, ..xs])
+  } else if length == max {
+    with_choice(max_rand) |> map(fn(_) { xs })
   } else {
     rand
       |> and_then(
           fn(n) {
-            // This is the probability above but simplified to use only
+            // This is the probability above but rewritten to use only
             // multiplications since division on-chain is expensive.
-            if n + n * avg <= max_rand * avg {
+            if n * ( p + q ) < max_rand * p {
               fuzzer
                 |> and_then(
                     fn(x) {
                       do_list_between(
-                        avg,
+                        p,
+                        q,
                         fuzzer,
                         min,
                         max,
@@ -346,8 +366,13 @@ pub fn one_of(xs: List<a>) -> Fuzzer<a> {
 
 // Combining Fuzzers
 
-pub fn either(_fuzz_a: Fuzzer<a>, _fuzz_b: Fuzzer<a>) -> Fuzzer<a> {
-  fail
+pub fn either(left: Fuzzer<a>, right: Fuzzer<a>) -> Fuzzer<a> {
+  let pick_left <- and_then(bool())
+  if pick_left {
+    left
+  } else {
+    right
+  }
 }
 
 pub fn both(left: Fuzzer<a>, right: Fuzzer<b>) -> Fuzzer<(a, b)> {

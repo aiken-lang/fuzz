@@ -1,5 +1,6 @@
-use aiken/fuzz.{bool, int, label, list}
+use aiken/fuzz.{bool, int, int_between, label, list, list_between}
 use aiken/list
+use aiken/string
 
 test prop_int_distribution(n via int()) {
   label(
@@ -21,6 +22,17 @@ test prop_int_distribution(n via int()) {
   True
 }
 
+test prop_int_between_distribution(n via int_between(-100, 100)) {
+  buckets(n, -100, 100, fn(n) { n + 25 })
+  n >= -100 && n <= 100
+}
+
+test prop_int_between_large(
+  n via int_between(0, 340_282_366_920_938_463_463_374_607_431_768_211_455),
+) fail {
+  n <= 18_446_744_073_709_551_615
+}
+
 test prop_bool_distribution(is_true via bool()) {
   label(
     if is_true {
@@ -33,14 +45,27 @@ test prop_bool_distribution(is_true via bool()) {
   True
 }
 
-test prop_list_distribution(xs via list(int())) {
-  label(
-    if list.is_empty(xs) {
-      @"Empty"
-    } else {
-      @"Non-empty"
-    },
-  )
+test prop_list_distribution_small(xs via list_between(int(), 0, 10)) {
+  let len = list.length(xs)
+  buckets(len, 0, 11, fn(n) { n + 1 })
+  len >= 0 && len <= 10
+}
 
-  True
+/// A small function for automatically labelling a range of ints.
+fn buckets(n, start, end, increment) -> Void {
+  expect n >= start
+  let next = increment(start)
+  if next >= end {
+    label(
+      [string.from_int(start), @"->", string.from_int(end)]
+        |> string.join(@" "),
+    )
+  } else if n < next {
+    label(
+      [string.from_int(start), @"->", string.from_int(next)]
+        |> string.join(@" "),
+    )
+  } else {
+    buckets(n, next, end, increment)
+  }
 }
