@@ -1,4 +1,8 @@
-use aiken/fuzz.{bool, int, int_between, label, list, list_between}
+use aiken/bytearray
+use aiken/fuzz.{
+  and_then, bool, int, int_between, label, list, list_between, list_with_elem,
+  map, sublist, such_that,
+}
 use aiken/list
 use aiken/string
 
@@ -68,4 +72,85 @@ fn buckets(n, start, end, increment) -> Void {
   } else {
     buckets(n, next, end, increment)
   }
+}
+
+fn is_even(x: Int) -> Bool {
+  x % 2 == 0
+}
+
+test prop_such_that(x via such_that(int(), is_even)) {
+  is_even(x)
+}
+
+fn list_at_least() -> Fuzzer<(Int, List<Int>)> {
+  let min <- and_then(int_between(0, 10))
+  let xs <- map(fuzz.list_at_least(int(), min))
+  (min, xs)
+}
+
+test prop_list_at_least(params via list_at_least()) {
+  let (min, xs) = params
+  list.length(xs) >= min
+}
+
+fn list_at_most() -> Fuzzer<(Int, List<Int>)> {
+  let max <- and_then(int_between(0, 10))
+  let xs <- map(fuzz.list_at_most(int(), max))
+  (max, xs)
+}
+
+test prop_list_at_most(params via list_at_most()) {
+  let (max, xs) = params
+  list.length(xs) <= max
+}
+
+fn int_at_least() -> Fuzzer<(Int, Int)> {
+  let min <- and_then(int_between(0, 10))
+  let n <- map(fuzz.int_at_least(min))
+  (min, n)
+}
+
+test prop_int_at_least(params via int_at_least()) {
+  let (min, n) = params
+  n >= min
+}
+
+fn int_at_most() -> Fuzzer<(Int, Int)> {
+  let max <- and_then(int_between(0, 10))
+  let n <- map(fuzz.int_at_most(max))
+  (max, n)
+}
+
+test prop_int_at_most(params via int_at_most()) {
+  let (max, n) = params
+  n <= max
+}
+
+test prop_list_with_elem(xs via list_with_elem(int())) {
+  let (xs, x) = xs
+  list.has(xs, x)
+}
+
+fn list_with_sublist() -> Fuzzer<(List<Int>, List<Int>)> {
+  let xs <- and_then(list(int()))
+  let sub <- map(sublist(xs))
+  (xs, sub)
+}
+
+test prop_list_with_subset(params via list_with_sublist()) {
+  let (xs, sub) = params
+  list.all(sub, fn(x) { list.has(xs, x) })
+}
+
+fn bytearray_between() -> Fuzzer<(Int, Int, ByteArray)> {
+  let min <- and_then(int_between(0, 32))
+  let max <- and_then(int_between(min, min + 32))
+  let bytes <- map(fuzz.bytearray_between(min, max))
+  (min, max, bytes)
+}
+
+test prop_bytearray_between(params via bytearray_between()) {
+  let (min, max, bytes) = params
+  let len = bytearray.length(bytes)
+  len >= min && len <= max
 }

@@ -22,12 +22,34 @@ pub fn bool() -> Fuzzer<Bool> {
   rand |> map(fn(n) { n % 2 == 0 })
 }
 
+/// Generate a random [`ByteArray`](https://aiken-lang.github.io/prelude/aiken.html#ByteArray) of 32 bytes.
 pub fn bytearray() -> Fuzzer<ByteArray> {
-  fail
+  let lsb <- and_then(rand)
+  let msb <- map(rand)
+  ""
+    |> builtin.cons_bytearray(lsb, _)
+    |> builtin.cons_bytearray(msb, _)
+    |> builtin.blake2b_256
 }
 
-pub fn bytearray_between(_min: Int, _max: Int) -> Fuzzer<ByteArray> {
-  fail
+/// Generate a random [`ByteArray`](https://aiken-lang.github.io/prelude/aiken.html#ByteArray) of
+/// size within a lower and upper bounds.
+pub fn bytearray_between(min: Int, max: Int) -> Fuzzer<ByteArray> {
+  if max < min {
+    bytearray_between(max, min)
+  } else if max <= 0 {
+    constant("")
+  } else {
+    expect min >= 0
+    let size <- and_then(int_between(min, max))
+    if size <= 32 {
+      map(bytearray(), builtin.slice_bytearray(0, size, _))
+    } else {
+      let head <- and_then(bytearray())
+      let tail <- map(bytearray_between(0, size - 32))
+      builtin.append_bytearray(head, tail)
+    }
+  }
 }
 
 const int_bucket_small: Int = 128
@@ -118,6 +140,26 @@ pub fn int() -> Fuzzer<Int> {
   }
 }
 
+/// Generate a random integer which is at least `min`.
+pub fn int_at_least(min: Int) -> Fuzzer<Int> {
+  let abs = math.abs(min)
+  if abs <= max_rand {
+    int_between(min, max_rand)
+  } else {
+    int_between(min, min + 5 * abs)
+  }
+}
+
+/// Generate a random integer which is at most `max`.
+pub fn int_at_most(max: Int) -> Fuzzer<Int> {
+  let abs = math.abs(max)
+  if abs <= max_rand {
+    int_between(-max_rand, max)
+  } else {
+    int_between(max - 5 * abs, max)
+  }
+}
+
 /// Generate integers values uniformly between a lower and upper bounds (both inclusive).
 pub fn int_between(min: Int, max: Int) -> Fuzzer<Int> {
   if min > max {
@@ -139,12 +181,51 @@ pub fn int_between(min: Int, max: Int) -> Fuzzer<Int> {
   }
 }
 
+/// Generate a byte uniformly across the range `[0; 255]`.
+pub fn byte() -> Fuzzer<Int> {
+  rand
+}
+
 /// Generate a random list of elements from a given element. The list contains
 /// *at most `20`* elements, and has a higher probability of generating smaller lists.
 ///
 /// For lists of a specific length, use [`list_between`](#list_between).
 pub fn list(fuzzer: Fuzzer<a>) -> Fuzzer<List<a>> {
   list_between(fuzzer, 0, 20)
+}
+
+/// Generate a random list of elements from a given fuzzer, with at least `min` elements.
+pub fn list_at_least(fuzzer: Fuzzer<a>, min: Int) -> Fuzzer<List<a>> {
+  list_between(fuzzer, min, 20)
+}
+
+/// Generate a random list of elements from a given fuzzer, with at most `max` elements.
+pub fn list_at_most(fuzzer: Fuzzer<a>, max: Int) -> Fuzzer<List<a>> {
+  list_between(fuzzer, 0, max)
+}
+
+/// Generate a random list and pick an element from that list. Return both.
+pub fn list_with_elem(fuzzer: Fuzzer<a>) -> Fuzzer<(List<a>, a)> {
+  let xs <- and_then(list_at_least(fuzzer, 1))
+  let x <- map(one_of(xs))
+  (xs, x)
+}
+
+/// Take a random sublist from an existing list.
+pub fn sublist(xs: List<a>) -> Fuzzer<List<a>> {
+  let threshold <- and_then(rand)
+  when xs is {
+    [] -> constant([])
+    [head, ..tail] -> {
+      let n <- and_then(rand)
+      let rest <- map(sublist(tail))
+      if n < threshold {
+        [head, ..rest]
+      } else {
+        rest
+      }
+    }
+  }
 }
 
 /// Generate a random list of elements with length within specified bounds. The
@@ -278,6 +359,33 @@ pub fn option(fuzz_a: Fuzzer<a>) -> Fuzzer<Option<a>> {
           }
         },
       )
+}
+
+/// Generate a value that satisfies a given predicate. Beware that this
+/// function may heavily impact the performances of your fuzzers. In general, you
+/// should prefer constraining the fuzzers beforehand than trying to discard
+/// values after the fact!
+///
+/// Use with caution.
+pub fn such_that(fuzzer: Fuzzer<a>, predicate: fn(a) -> Bool) -> Fuzzer<a> {
+  do_such_that(fuzzer, predicate, 100)
+}
+
+fn do_such_that(
+  fuzzer: Fuzzer<a>,
+  predicate: fn(a) -> Bool,
+  max_tries: Int,
+) -> Fuzzer<a> {
+  if max_tries <= 0 {
+    fail @"such_that: couldn't satisfy the predicate after 100 attempts."
+  } else {
+    let x <- and_then(fuzzer)
+    if predicate(x) {
+      constant(x)
+    } else {
+      do_such_that(fuzzer, predicate, max_tries - 1)
+    }
+  }
 }
 
 /// Combine a [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer) with the result of a another one.
