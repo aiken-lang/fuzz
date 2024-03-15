@@ -105,7 +105,7 @@ test prop_list_at_most(params via list_at_most()) {
 }
 
 fn int_at_least() -> Fuzzer<(Int, Int)> {
-  let min <- and_then(int_between(0, 10))
+  let min <- and_then(int())
   let n <- map(fuzz.int_at_least(min))
   (min, n)
 }
@@ -116,7 +116,7 @@ test prop_int_at_least(params via int_at_least()) {
 }
 
 fn int_at_most() -> Fuzzer<(Int, Int)> {
-  let max <- and_then(int_between(0, 10))
+  let max <- and_then(int())
   let n <- map(fuzz.int_at_most(max))
   (max, n)
 }
