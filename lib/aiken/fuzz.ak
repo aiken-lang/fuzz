@@ -760,7 +760,7 @@ pub fn label(str: String) -> Void {
 /// Useful for labelling specific scenarios based on a predicate.
 ///
 /// ```aiken
-/// test prop_u16(operands via fuzz.both(uint8(), uint8())) {
+/// test prop_u16(operands via fuzz.both(byte(), byte())) {
 ///   let (msb, lsb) = operands
 ///   fuzz.label_when(msb == 0, @"msb = 0", @"default")
 ///   fuzz.label_when(lsb == 0, @"lsb = 0", @"default")
@@ -770,10 +770,6 @@ pub fn label(str: String) -> Void {
 ///       |> builtin.cons_bytearray(msb, _)
 ///       |> builtin.cons_bytearray(lsb, _),
 ///   ) == msb * 256 + lsb
-/// }
-///
-/// fn uint8() -> Fuzz<Int> {
-///   fuzz.int_between(0, 255)
 /// }
 /// ```
 pub fn label_when(predicate: Bool, str: String, default: String) -> Void {
