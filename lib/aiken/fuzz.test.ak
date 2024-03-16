@@ -1,7 +1,7 @@
 use aiken/bytearray
 use aiken/fuzz.{
   and_then, bool, int, int_between, label, list, list_between, list_with_elem,
-  map, sublist, such_that,
+  map, one_of, sublist, such_that,
 }
 use aiken/list
 use aiken/string
@@ -53,25 +53,6 @@ test prop_list_distribution_small(xs via list_between(int(), 0, 10)) {
   let len = list.length(xs)
   buckets(len, 0, 11, fn(n) { n + 1 })
   len >= 0 && len <= 10
-}
-
-/// A small function for automatically labelling a range of ints.
-fn buckets(n, start, end, increment) -> Void {
-  expect n >= start
-  let next = increment(start)
-  if next >= end {
-    label(
-      [string.from_int(start), @"->", string.from_int(end)]
-        |> string.join(@" "),
-    )
-  } else if n < next {
-    label(
-      [string.from_int(start), @"->", string.from_int(next)]
-        |> string.join(@" "),
-    )
-  } else {
-    buckets(n, next, end, increment)
-  }
 }
 
 fn is_even(x: Int) -> Bool {
@@ -153,4 +134,46 @@ test prop_bytearray_between(params via bytearray_between()) {
   let (min, max, bytes) = params
   let len = bytearray.length(bytes)
   len >= min && len <= max
+}
+
+test prop_int_between_boundary_up(n via int_between(0, 2)) fail {
+  n < 2
+}
+
+test prop_int_between_smallest_range(n via int_between(0, 1)) {
+  label(
+    if n == 0 {
+      @"= 0"
+    } else {
+      @"= 1"
+    },
+  )
+  n == 0 || n == 1
+}
+
+test prop_int_between_boundary_down(n via int_between(0, 10)) fail {
+  n > 0
+}
+
+test prop_one_of_upper(i via one_of([1, 3, 5, 7])) fail {
+  i != 7
+}
+
+/// A small function for automatically labelling a range of ints.
+fn buckets(n, start, end, increment) -> Void {
+  expect n >= start
+  let next = increment(start)
+  if next >= end {
+    label(
+      [string.from_int(start), @"->", string.from_int(end)]
+        |> string.join(@" "),
+    )
+  } else if n < next {
+    label(
+      [string.from_int(start), @"->", string.from_int(next)]
+        |> string.join(@" "),
+    )
+  } else {
+    buckets(n, next, end, increment)
+  }
 }

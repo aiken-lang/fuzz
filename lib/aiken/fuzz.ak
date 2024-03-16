@@ -167,7 +167,7 @@ pub fn int_between(min: Int, max: Int) -> Fuzzer<Int> {
   } else if min == max {
     constant(min)
   } else {
-    let range = max - min
+    let range = max - min + 1
     let log2_floor = log2(range)
     let threshold = math.pow2(log2_floor)
     let n <- and_then(rand)
@@ -175,7 +175,7 @@ pub fn int_between(min: Int, max: Int) -> Fuzzer<Int> {
       let offset <- map(rand_n(log2_floor, _))
       offset + min
     } else {
-      let offset <- map(int_between(0, range - threshold))
+      let offset <- map(int_between(0, range - threshold - 1))
       threshold + offset + min
     }
   }
