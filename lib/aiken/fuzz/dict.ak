@@ -13,18 +13,16 @@ pub fn dict_between(
   min: Int,
   max: Int,
 ) -> Fuzzer<Dict<k, v>> {
-  fuzz.constant(dict.new())
-  // fuzz.list_between(
-  //   fuzz.map2(fuzz_key, fuzz_value, fn(k, v) { (k, v) }),
-  //   min,
-  //   max,
-  // )
-  //   |> fuzz.map(dict.from_list(_, compare))
+  fuzz.list_between(
+    fuzz.map2(fuzz_key, fuzz_value, fn(k, v) { (k, v) }),
+    min,
+    max,
+  )
+    |> fuzz.map(dict.from_list(_, compare))
 }
 
 test prop_dict_between(
-  d via dict_between(fuzz.int(), fuzz.bytearray(), int.compare , 20, 40),
+  d via dict_between(fuzz.int(), fuzz.bytearray(), int.compare, 20, 40),
 ) {
-  True
-  //(d |> dict.keys() |> list.length()) > 10
+  ( d |> dict.keys() |> list.length() ) > 10
 }
