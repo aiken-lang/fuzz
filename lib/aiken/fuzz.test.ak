@@ -1,10 +1,34 @@
 use aiken/bytearray
 use aiken/fuzz.{
   and_then, bool, int, int_between, label, list, list_between, list_with_elem,
-  map, one_of, sublist, such_that,
+  map, one_of, sublist, such_that, list_fixed, constant
 }
 use aiken/list
 use aiken/string
+
+test test_list_fixed_true(n via list_fixed(constant(True), 10)) {
+  label(
+    if (n |> list.length()) == 10 {
+      @"possible"
+    } else {
+      @"impossible"
+    },
+  )
+
+  True
+}
+
+test test_list_between_constant(n via list_between(bool(), 2,2)) {
+  label(
+    if (n |> list.length()) == 1 {
+      @"possible"
+    } else {
+      @"impossible"
+    },
+  )
+
+  True
+}
 
 test prop_int_distribution(n via int()) {
   label(

@@ -250,12 +250,23 @@ pub fn sublist(xs: List<a>) -> Fuzzer<List<a>> {
 ///  8.0%  10 elements  ███
 /// ```
 pub fn list_between(fuzzer: Fuzzer<a>, min: Int, max: Int) -> Fuzzer<List<a>> {
+  expect and { min >=0, max >= 0}
   if min > max {
     list_between(fuzzer, max, min)
-  } else if max <= 0 {
-    constant([])
+  } else if max == min {
+    list_fixed(fuzzer, max)
   } else {
     do_list_between(max - min, log2(max - min), fuzzer, min, max, 0, [])
+  }
+}
+
+/// Use much simpler logic where it makes sense
+pub fn list_fixed(fuzzer: Fuzzer<a>, len: Int) -> Fuzzer<List<a>> {
+  expect len >=0
+  if len == 0 {
+    constant([])
+  } else {
+    map2(fuzzer, list_fixed(fuzzer, len - 1), fn(x, xs) { [x, ..xs ]})
   }
 }
 
