@@ -63,6 +63,10 @@ test prop_such_that(x via such_that(int(), is_even)) {
   is_even(x)
 }
 
+test prop_list_exactly(xs via list_between(int(), 3, 3)) {
+  list.length(xs) == 3
+}
+
 fn list_at_least() -> Fuzzer<(Int, List<Int>)> {
   let min <- and_then(int_between(0, 10))
   let xs <- map(fuzz.list_at_least(int(), min))

@@ -255,7 +255,19 @@ pub fn list_between(fuzzer: Fuzzer<a>, min: Int, max: Int) -> Fuzzer<List<a>> {
   } else if max <= 0 {
     constant([])
   } else {
-    do_list_between(max - min, log2(max - min), fuzzer, min, max, 0, [])
+    do_list_between(
+      max - min,
+      if max == min {
+        -1
+      } else {
+        log2(max - min)
+      },
+      fuzzer,
+      min,
+      max,
+      0,
+      [],
+    )
   }
 }
 
@@ -285,6 +297,7 @@ fn do_list_between(p, q, fuzzer, min, max, length, xs) -> Fuzzer<List<a>> {
   } else if length == max {
     with_choice(max_rand) |> map(fn(_) { xs })
   } else {
+    expect q != -1
     rand
       |> and_then(
           fn(n) {
@@ -941,20 +954,30 @@ test unit_log2_1() {
   }
 }
 
+test prop_log2(n via int_at_least(1)) {
+  let log2_floor = log2(n)
+  and {
+    n >= math.pow2(log2_floor),
+    n <= math.pow2(log2_floor + 1),
+  }
+}
+
 /// Construct a larger int from two u8 operands.
 /// The most significant part is given first.
 fn u16(msb: Int, lsb: Int) -> Int {
-  builtin.bytearray_to_integer(
-    False,
-    ""
-      |> builtin.cons_bytearray(msb, _)
-      |> builtin.cons_bytearray(lsb, _),
-  )
+  msb * 256 + lsb
 }
 
 test prop_u16(operands via both(rand, rand)) {
   let (msb, lsb) = operands
   label_when(msb == 0, @"msb = 0", @"default")
   label_when(lsb == 0, @"lsb = 0", @"default")
-  u16(msb, lsb) == msb * 256 + lsb
+  let n =
+    builtin.bytearray_to_integer(
+      False,
+      ""
+        |> builtin.cons_bytearray(msb, _)
+        |> builtin.cons_bytearray(lsb, _),
+    )
+  u16(msb, lsb) == n
 }
