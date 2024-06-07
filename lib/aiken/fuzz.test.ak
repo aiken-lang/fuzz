@@ -128,8 +128,8 @@ test prop_list_with_subset(params via list_with_sublist()) {
 }
 
 fn bytearray_between() -> Fuzzer<(Int, Int, ByteArray)> {
-  let min <- and_then(int_between(0, 32))
-  let max <- and_then(int_between(min, 10 * min))
+  let min <- and_then(int_between(0, 50))
+  let max <- and_then(int_between(min, 5 * min))
   let bytes <- map(fuzz.bytearray_between(min, max))
   (min, max, bytes)
 }
