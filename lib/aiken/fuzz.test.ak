@@ -139,11 +139,17 @@ test prop_bytearray_between(params via bytearray_between()) {
 
   let len = bytearray.length(bytes)
 
+  let mid = ( min + max ) / 2
+
   label(
-    if len > 32 {
-      @"> 32"
+    if len < min {
+      @"< min (impossible)"
+    } else if len <= mid {
+      @"<= mid (~50%)"
+    } else if len <= max {
+      @"<= max (~50%)"
     } else {
-      @"<= 32"
+      @"> max (impossible)"
     },
   )
 

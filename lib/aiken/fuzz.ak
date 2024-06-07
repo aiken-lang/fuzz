@@ -32,6 +32,24 @@ pub fn bytearray() -> Fuzzer<ByteArray> {
     |> builtin.blake2b_256
 }
 
+/// Generate a random [`ByteArray`](https://aiken-lang.github.io/prelude/aiken.html#ByteArray) of `len` bytes.
+pub fn bytearray_fixed(len: Int) -> Fuzzer<ByteArray> {
+  expect len >= 0
+  bytearray_fixed_inner(len)
+}
+
+fn bytearray_fixed_inner(len: Int) -> Fuzzer<ByteArray> {
+  if len > 32 {
+    let head <- and_then(bytearray())
+    let tail <- map(bytearray_fixed(len - 32))
+    builtin.append_bytearray(head, tail)
+  } else if len < 32 {
+    map(bytearray(), builtin.slice_bytearray(0, len, _))
+  } else {
+    bytearray()
+  }
+}
+
 /// Generate a random [`ByteArray`](https://aiken-lang.github.io/prelude/aiken.html#ByteArray) of
 /// size within a lower and upper bounds.
 pub fn bytearray_between(min: Int, max: Int) -> Fuzzer<ByteArray> {
@@ -42,13 +60,7 @@ pub fn bytearray_between(min: Int, max: Int) -> Fuzzer<ByteArray> {
   } else {
     expect min >= 0
     let size <- and_then(int_between(min, max))
-    if size <= 32 {
-      map(bytearray(), builtin.slice_bytearray(0, size, _))
-    } else {
-      let head <- and_then(bytearray())
-      let tail <- map(bytearray_between(0, size - 32))
-      builtin.append_bytearray(head, tail)
-    }
+    bytearray_fixed_inner(size)
   }
 }
 
