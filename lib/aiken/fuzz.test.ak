@@ -1,7 +1,7 @@
 use aiken/bytearray
 use aiken/fuzz.{
   and_then, bool, int, int_between, label, list, list_between, list_with_elem,
-  map, one_of, sublist, such_that,
+  map, one_of, set, sublist, such_that,
 }
 use aiken/list
 use aiken/string
@@ -178,6 +178,29 @@ test prop_int_between_boundary_down(n via int_between(0, 10)) fail once {
 test prop_one_of_upper(i via one_of([1, 3, 5, 7])) fail once {
   i != 7
 }
+
+test prop_set(xs via set(int())) {
+  let ys =
+    list.reduce(
+      xs,
+      [],
+      fn(known, x) {
+        expect !list.has(known, x)
+        [x, ..known]
+      },
+    )
+
+  list.length(ys) == list.length(xs)
+}
+
+// This property simply illustrate a case where the `set`
+// fuzzer would fail and not loop forever after not being
+// able to satisfy the demand (not enough entropy in the
+// input domain).
+//
+// test prop_set_exhausted(xs via set(int_between(0, 3))) {
+//   True
+// }
 
 /// A small function for automatically labelling a range of ints.
 fn buckets(n, start, end, increment) -> Void {
