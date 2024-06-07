@@ -150,7 +150,7 @@ test prop_bytearray_between(params via bytearray_between()) {
   len >= min && len <= max
 }
 
-test prop_int_between_boundary_up(n via int_between(0, 2)) fail {
+test prop_int_between_boundary_up(n via int_between(0, 2)) fail once {
   n < 2
 }
 
@@ -165,11 +165,11 @@ test prop_int_between_smallest_range(n via int_between(0, 1)) {
   n == 0 || n == 1
 }
 
-test prop_int_between_boundary_down(n via int_between(0, 10)) fail {
+test prop_int_between_boundary_down(n via int_between(0, 10)) fail once {
   n > 0
 }
 
-test prop_one_of_upper(i via one_of([1, 3, 5, 7])) fail {
+test prop_one_of_upper(i via one_of([1, 3, 5, 7])) fail once {
   i != 7
 }
 
