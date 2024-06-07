@@ -1,7 +1,7 @@
 use aiken/bytearray
 use aiken/fuzz.{
   and_then, bool, int, int_between, label, list, list_between, list_with_elem,
-  map, one_of, set, sublist, such_that,
+  map, one_of, set, set_between, sublist, such_that,
 }
 use aiken/list
 use aiken/string
@@ -191,6 +191,14 @@ test prop_set(xs via set(int())) {
     )
 
   list.length(ys) == list.length(xs)
+}
+
+test prop_set_between_distribution(n via set_between(int_between(0, 50), 3, 13)) {
+  let len = n |> list.length
+  label(
+    len |> string.from_int
+  )
+  True
 }
 
 // This property simply illustrate a case where the `set`
