@@ -195,9 +195,7 @@ test prop_set(xs via set(int())) {
 
 test prop_set_between_distribution(n via set_between(int_between(0, 50), 3, 13)) {
   let len = n |> list.length
-  label(
-    len |> string.from_int
-  )
+  label(len |> string.from_int)
   True
 }
 
