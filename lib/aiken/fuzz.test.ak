@@ -4,6 +4,7 @@ use aiken/fuzz.{
   map, one_of, set, set_between, sublist, such_that,
 }
 use aiken/list
+use aiken/math
 use aiken/string
 
 test prop_int_distribution(n via int()) {
@@ -68,7 +69,7 @@ test prop_list_exactly(xs via list_between(int(), 3, 3)) {
 }
 
 fn list_at_least() -> Fuzzer<(Int, List<Int>)> {
-  let min <- and_then(int_between(0, 10))
+  let min <- and_then(int_between(0, 30))
   let xs <- map(fuzz.list_at_least(int(), min))
   (min, xs)
 }
@@ -79,14 +80,14 @@ test prop_list_at_least(params via list_at_least()) {
 }
 
 fn list_at_most() -> Fuzzer<(Int, List<Int>)> {
-  let max <- and_then(int_between(0, 10))
+  let max <- and_then(int_between(-10, 10))
   let xs <- map(fuzz.list_at_most(int(), max))
   (max, xs)
 }
 
 test prop_list_at_most(params via list_at_most()) {
   let (max, xs) = params
-  list.length(xs) <= max
+  list.length(xs) <= math.max(0, max)
 }
 
 fn int_at_least() -> Fuzzer<(Int, Int)> {

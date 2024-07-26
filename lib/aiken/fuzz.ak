@@ -212,7 +212,7 @@ pub fn set(fuzzer: Fuzzer<a>) -> Fuzzer<List<a>> {
 
 /// Generate a random set of elements from a given fuzzer, with at least `min` elements.
 pub fn set_at_least(fuzzer: Fuzzer<a>, min: Int) -> Fuzzer<List<a>> {
-  set_between(fuzzer, min, 20)
+  set_between(fuzzer, min, min + 20)
 }
 
 /// Generate a random set of elements from a given fuzzer, with at most `max` elements.
@@ -305,7 +305,7 @@ pub fn list(fuzzer: Fuzzer<a>) -> Fuzzer<List<a>> {
 
 /// Generate a random list of elements from a given fuzzer, with at least `min` elements.
 pub fn list_at_least(fuzzer: Fuzzer<a>, min: Int) -> Fuzzer<List<a>> {
-  list_between(fuzzer, min, 20)
+  list_between(fuzzer, min, min + 20)
 }
 
 /// Generate a random list of elements from a given fuzzer, with at most `max` elements.
