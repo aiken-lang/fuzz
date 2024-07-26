@@ -12,6 +12,12 @@ smart-contract language.
 
 It provides many useful primitives for writing and composing arbitrary generators in the context of [property-based testing](https://en.wikipedia.org/wiki/Property_testing).
 
+## Installation
+
+```
+aiken add aiken-lang/fuzz --version v1
+```
+
 ## Getting started
 
 First, make sure you have the [Aiken's user manual about tests](https://aiken-lang.org/language-tour/tests#property-based-test); in particular the section about property-based test.
