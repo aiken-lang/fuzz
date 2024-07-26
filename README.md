@@ -2,8 +2,8 @@
   <hr />
     <h2 align="center" style="border-bottom: none"><img style="position: relative; top: 0.25rem;" src="https://raw.githubusercontent.com/aiken-lang/branding/main/assets/icon.png" alt="Aiken" height="30" /> aiken/fuzz</h2>
 
-[![Licence](https://img.shields.io/github/license/aiken-lang/fuzz)](https://github.com/aiken-lang/fuzz/blob/main/LICENSE?style=for-the-badge)
-[![Continuous Integration](https://github.com/aiken-lang/fuzz/actions/workflows/continuous-integration.yml/badge.svg?branch=main&style=for-the-badge)](https://github.com/aiken-lang/fuzz/actions/workflows/continuous-integration.yml)
+[![Licence](https://img.shields.io/github/license/aiken-lang/fuzz?style=for-the-badge)](https://github.com/aiken-lang/fuzz/blob/main/LICENSE)
+[![Continuous Integration](https://img.shields.io/github/actions/workflow/status/aiken-lang/fuzz/continuous-integration.yml?style=for-the-badge)](https://github.com/aiken-lang/fuzz/actions/workflows/continuous-integration.yml)
   <hr/>
 </div>
 
