@@ -1,11 +1,11 @@
-use aiken/bytearray
+use aiken/collection/list
 use aiken/fuzz.{
-  and_then, bool, int, int_between, label, list, list_between, list_with_elem,
-  map, one_of, set, set_between, sublist, such_that,
+  and_then, bool, int, int_between, label, list_between, list_with_elem, map,
+  one_of, set, set_between, sublist, such_that,
 }
-use aiken/list
 use aiken/math
-use aiken/string
+use aiken/primitive/bytearray
+use aiken/primitive/string
 
 test prop_int_distribution(n via int()) {
   label(
@@ -118,7 +118,7 @@ test prop_list_with_elem(xs via list_with_elem(int())) {
 }
 
 fn list_with_sublist() -> Fuzzer<(List<Int>, List<Int>)> {
-  let xs <- and_then(list(int()))
+  let xs <- and_then(fuzz.list(int()))
   let sub <- map(sublist(xs))
   (xs, sub)
 }

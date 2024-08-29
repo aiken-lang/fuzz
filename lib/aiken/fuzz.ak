@@ -1,5 +1,5 @@
 use aiken/builtin
-use aiken/list
+use aiken/collection/list
 use aiken/math
 use aiken/option
 
@@ -270,7 +270,7 @@ pub fn set_between(fuzzer: Fuzzer<a>, min: Int, max: Int) -> Fuzzer<List<a>> {
       } else {
         log2(max - min)
       },
-      nub(100, fuzzer),
+      nub(100, fuzzer, _),
       min,
       max,
       0,
@@ -280,17 +280,15 @@ pub fn set_between(fuzzer: Fuzzer<a>, min: Int, max: Int) -> Fuzzer<List<a>> {
 }
 
 /// Construct a fuzzer that returns values not present in a given list.
-fn nub(n: Int, fuzzer: Fuzzer<a>) -> fn(List<a>) -> Fuzzer<a> {
-  fn(st) {
-    if n <= 0 {
-      fail @"gave up trying to find unique values: the fuzzer did not yield any *new* value after many tries!"
+fn nub(n: Int, fuzzer: Fuzzer<a>, st: List<a>) -> Fuzzer<a> {
+  if n <= 0 {
+    fail @"gave up trying to find unique values: the fuzzer did not yield any *new* value after many tries!"
+  } else {
+    let a <- and_then(fuzzer)
+    if list.has(st, a) {
+      nub(n - 1, fuzzer, st)
     } else {
-      let a <- and_then(fuzzer)
-      if list.has(st, a) {
-        nub(n - 1, fuzzer)(st)
-      } else {
-        constant(a)
-      }
+      constant(a)
     }
   }
 }
