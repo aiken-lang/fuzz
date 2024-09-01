@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.0.0 - 2024-09-01
+
+### Changed
+
+- Integrated with `aiken==1.1.0` and `aiken-lang/stdlib==v2`
+
 ## v1.0.0 - 2024-07-26
 
 ### Added

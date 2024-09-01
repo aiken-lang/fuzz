@@ -15,7 +15,7 @@ It provides many useful primitives for writing and composing arbitrary generator
 ## Installation
 
 ```
-aiken add aiken-lang/fuzz --version v1
+aiken add aiken-lang/fuzz --version v2
 ```
 
 ## Getting started

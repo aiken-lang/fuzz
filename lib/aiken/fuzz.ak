@@ -3,12 +3,8 @@ use aiken/collection/list
 use aiken/math
 use aiken/option
 
-// Primitives
-
-/// Create a constant [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer) from an arbitrary value.
-pub fn constant(a: a) -> Fuzzer<a> {
-  fn(s0) { Some((s0, a)) }
-}
+// ## Constructing
+// ### Primitives
 
 /// Generate a random [`Bool`](https://aiken-lang.github.io/prelude/aiken.html#Bool) value from a
 /// uniform distribution.
@@ -22,6 +18,16 @@ pub fn bool() -> Fuzzer<Bool> {
   rand |> map(fn(n) { n % 2 == 0 })
 }
 
+/// Create a constant [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer) from an arbitrary value.
+pub fn constant(a: a) -> Fuzzer<a> {
+  fn(s0) { Some((s0, a)) }
+}
+
+/// Generate a byte uniformly across the range `[0; 255]`.
+pub fn byte() -> Fuzzer<Int> {
+  rand
+}
+
 /// Generate a random [`ByteArray`](https://aiken-lang.github.io/prelude/aiken.html#ByteArray) of 32 bytes.
 pub fn bytearray() -> Fuzzer<ByteArray> {
   let lsb <- and_then(rand)
@@ -30,6 +36,20 @@ pub fn bytearray() -> Fuzzer<ByteArray> {
     |> builtin.cons_bytearray(lsb, _)
     |> builtin.cons_bytearray(msb, _)
     |> builtin.blake2b_256
+}
+
+/// Generate a random [`ByteArray`](https://aiken-lang.github.io/prelude/aiken.html#ByteArray) of
+/// size within a lower and upper bounds.
+pub fn bytearray_between(min: Int, max: Int) -> Fuzzer<ByteArray> {
+  if max < min {
+    bytearray_between(max, min)
+  } else if max <= 0 {
+    constant("")
+  } else {
+    expect min >= 0
+    let size <- and_then(int_between(min, max))
+    bytearray_fixed_inner(size)
+  }
 }
 
 /// Generate a random [`ByteArray`](https://aiken-lang.github.io/prelude/aiken.html#ByteArray) of `len` bytes.
@@ -47,20 +67,6 @@ fn bytearray_fixed_inner(len: Int) -> Fuzzer<ByteArray> {
     map(bytearray(), builtin.slice_bytearray(0, len, _))
   } else {
     bytearray()
-  }
-}
-
-/// Generate a random [`ByteArray`](https://aiken-lang.github.io/prelude/aiken.html#ByteArray) of
-/// size within a lower and upper bounds.
-pub fn bytearray_between(min: Int, max: Int) -> Fuzzer<ByteArray> {
-  if max < min {
-    bytearray_between(max, min)
-  } else if max <= 0 {
-    constant("")
-  } else {
-    expect min >= 0
-    let size <- and_then(int_between(min, max))
-    bytearray_fixed_inner(size)
   }
 }
 
@@ -152,26 +158,6 @@ pub fn int() -> Fuzzer<Int> {
   }
 }
 
-/// Generate a random integer which is at least `min`.
-pub fn int_at_least(min: Int) -> Fuzzer<Int> {
-  let abs = math.abs(min)
-  if abs <= max_rand {
-    int_between(min, max_rand)
-  } else {
-    int_between(min, min + 5 * abs)
-  }
-}
-
-/// Generate a random integer which is at most `max`.
-pub fn int_at_most(max: Int) -> Fuzzer<Int> {
-  let abs = math.abs(max)
-  if abs <= max_rand {
-    int_between(-max_rand, max)
-  } else {
-    int_between(max - 5 * abs, max)
-  }
-}
-
 /// Generate integers values uniformly between a lower and upper bounds (both inclusive).
 pub fn int_between(min: Int, max: Int) -> Fuzzer<Int> {
   if min > max {
@@ -193,105 +179,27 @@ pub fn int_between(min: Int, max: Int) -> Fuzzer<Int> {
   }
 }
 
-/// Generate a byte uniformly across the range `[0; 255]`.
-pub fn byte() -> Fuzzer<Int> {
-  rand
-}
-
-/// Generate a random list of **unique** elements (a.k.a. a set) from a given fuzzer.
-/// The list contains *at most `20`* elements, and has a higher probability of
-/// generating smaller lists.
-///
-/// **Important:** The specified fuzzer must have a high enough entropy to
-/// yield enough unique values to fill the set with the required size!
-///
-/// For sets of a specific length, use [`set_between`](#set_between).
-pub fn set(fuzzer: Fuzzer<a>) -> Fuzzer<List<a>> {
-  set_between(fuzzer, 0, 20)
-}
-
-/// Generate a random set of elements from a given fuzzer, with at least `min` elements.
-pub fn set_at_least(fuzzer: Fuzzer<a>, min: Int) -> Fuzzer<List<a>> {
-  set_between(fuzzer, min, min + 20)
-}
-
-/// Generate a random set of elements from a given fuzzer, with at most `max` elements.
-pub fn set_at_most(fuzzer: Fuzzer<a>, max: Int) -> Fuzzer<List<a>> {
-  set_between(fuzzer, 0, max)
-}
-
-/// Generate a random set and pick an element from that set. Return both.
-pub fn set_with_elem(fuzzer: Fuzzer<a>) -> Fuzzer<(List<a>, a)> {
-  let xs <- and_then(set_at_least(fuzzer, 1))
-  let x <- map(one_of(xs))
-  (xs, x)
-}
-
-/// Take a random subset from an existing set.
-pub fn subset(xs: List<a>) -> Fuzzer<List<a>> {
-  sublist(xs)
-}
-
-/// Generate a random list of **unique** elements (a.k.a a set) with length
-/// within specified bounds. The resulting set contains *at least `min`*
-/// elements and *at most `max`* elements, with a higher probability of
-/// generating smaller sets.
-///
-/// More specifically, there's approximately 1/n chance of generating n
-/// elements within the range. For example, the distribution when generating a
-/// set between 0 and 10 elements resemble the following:
-///
-/// **Important:** The specified fuzzer must have a high enough entropy to
-/// yield enough unique values to fill the set with the required size!
-///
-/// ```
-/// 22.7%   0 elements  ████████
-/// 19.7%   1 element   ███████
-/// 13.5%   2 elements  █████
-///  9.5%   3 elements  ███
-///  6.3%   4 elements  ██
-///  5.6%   5 elements  ██
-///  5.6%   6 elements  ██
-///  4.0%   7 elements  █
-///  3.1%   8 elements  █
-///  2.0%   9 elements  █
-///  8.0%  10 elements  ███
-/// ```
-pub fn set_between(fuzzer: Fuzzer<a>, min: Int, max: Int) -> Fuzzer<List<a>> {
-  if min > max {
-    set_between(fuzzer, max, min)
-  } else if max <= 0 {
-    constant([])
+/// Generate a random integer which is at least `min`.
+pub fn int_at_least(min: Int) -> Fuzzer<Int> {
+  let abs = math.abs(min)
+  if abs <= max_rand {
+    int_between(min, max_rand)
   } else {
-    do_list_between(
-      max - min,
-      if max == min {
-        -1
-      } else {
-        log2(max - min)
-      },
-      nub(100, fuzzer, _),
-      min,
-      max,
-      0,
-      [],
-    )
+    int_between(min, min + 5 * abs)
   }
 }
 
-/// Construct a fuzzer that returns values not present in a given list.
-fn nub(n: Int, fuzzer: Fuzzer<a>, st: List<a>) -> Fuzzer<a> {
-  if n <= 0 {
-    fail @"gave up trying to find unique values: the fuzzer did not yield any *new* value after many tries!"
+/// Generate a random integer which is at most `max`.
+pub fn int_at_most(max: Int) -> Fuzzer<Int> {
+  let abs = math.abs(max)
+  if abs <= max_rand {
+    int_between(-max_rand, max)
   } else {
-    let a <- and_then(fuzzer)
-    if list.has(st, a) {
-      nub(n - 1, fuzzer, st)
-    } else {
-      constant(a)
-    }
+    int_between(max - 5 * abs, max)
   }
 }
+
+// ### Data-structures
 
 /// Generate a random list of elements from a given fuzzer. The list contains
 /// *at most `20`* elements, and has a higher probability of generating smaller lists.
@@ -299,40 +207,6 @@ fn nub(n: Int, fuzzer: Fuzzer<a>, st: List<a>) -> Fuzzer<a> {
 /// For lists of a specific length, use [`list_between`](#list_between).
 pub fn list(fuzzer: Fuzzer<a>) -> Fuzzer<List<a>> {
   list_between(fuzzer, 0, 20)
-}
-
-/// Generate a random list of elements from a given fuzzer, with at least `min` elements.
-pub fn list_at_least(fuzzer: Fuzzer<a>, min: Int) -> Fuzzer<List<a>> {
-  list_between(fuzzer, min, min + 20)
-}
-
-/// Generate a random list of elements from a given fuzzer, with at most `max` elements.
-pub fn list_at_most(fuzzer: Fuzzer<a>, max: Int) -> Fuzzer<List<a>> {
-  list_between(fuzzer, 0, max)
-}
-
-/// Generate a random list and pick an element from that list. Return both.
-pub fn list_with_elem(fuzzer: Fuzzer<a>) -> Fuzzer<(List<a>, a)> {
-  let xs <- and_then(list_at_least(fuzzer, 1))
-  let x <- map(one_of(xs))
-  (xs, x)
-}
-
-/// Take a random sublist from an existing list.
-pub fn sublist(xs: List<a>) -> Fuzzer<List<a>> {
-  let threshold <- and_then(rand)
-  when xs is {
-    [] -> constant([])
-    [head, ..tail] -> {
-      let n <- and_then(rand)
-      let rest <- map(sublist(tail))
-      if n < threshold {
-        [head, ..rest]
-      } else {
-        rest
-      }
-    }
-  }
 }
 
 /// Generate a random list of elements with length within specified bounds. The
@@ -433,80 +307,114 @@ fn do_list_between(p, q, fuzzer, min, max, length, xs) -> Fuzzer<List<a>> {
   }
 }
 
-/// Pick a value from a (non-empty!) list with equal probability.
-///
-/// ```aiken
-/// let any_bool = fuzz.one_of([True, False])
-/// ```
-pub fn one_of(xs: List<a>) -> Fuzzer<a> {
-  let len = list.length(xs)
-  expect len > 0
-  int_between(0, len - 1)
-    |> map(
-        fn(ix: Int) {
-          expect Some(item) = list.at(xs, ix)
-          item
-        },
-      )
+/// Generate a random list of elements from a given fuzzer, with at least `min` elements.
+pub fn list_at_least(fuzzer: Fuzzer<a>, min: Int) -> Fuzzer<List<a>> {
+  list_between(fuzzer, min, min + 20)
 }
 
-// Combining Fuzzers
+/// Generate a random list of elements from a given fuzzer, with at most `max` elements.
+pub fn list_at_most(fuzzer: Fuzzer<a>, max: Int) -> Fuzzer<List<a>> {
+  list_between(fuzzer, 0, max)
+}
 
-/// Choose either of two fuzzers with an equal probability.
-pub fn either(left: Fuzzer<a>, right: Fuzzer<a>) -> Fuzzer<a> {
-  let pick_left <- and_then(bool())
-  if pick_left {
-    left
+/// Generate a random list and pick an element from that list. Return both.
+pub fn list_with_elem(fuzzer: Fuzzer<a>) -> Fuzzer<(List<a>, a)> {
+  let xs <- and_then(list_at_least(fuzzer, 1))
+  let x <- map(one_of(xs))
+  (xs, x)
+}
+
+/// Generate a random list of **unique** elements (a.k.a. a set) from a given fuzzer.
+/// The list contains *at most `20`* elements, and has a higher probability of
+/// generating smaller lists.
+///
+/// **Important:** The specified fuzzer must have a high enough entropy to
+/// yield enough unique values to fill the set with the required size!
+///
+/// For sets of a specific length, use [`set_between`](#set_between).
+pub fn set(fuzzer: Fuzzer<a>) -> Fuzzer<List<a>> {
+  set_between(fuzzer, 0, 20)
+}
+
+/// Generate a random list of **unique** elements (a.k.a a set) with length
+/// within specified bounds. The resulting set contains *at least `min`*
+/// elements and *at most `max`* elements, with a higher probability of
+/// generating smaller sets.
+///
+/// More specifically, there's approximately 1/n chance of generating n
+/// elements within the range. For example, the distribution when generating a
+/// set between 0 and 10 elements resemble the following:
+///
+/// **Important:** The specified fuzzer must have a high enough entropy to
+/// yield enough unique values to fill the set with the required size!
+///
+/// ```
+/// 22.7%   0 elements  ████████
+/// 19.7%   1 element   ███████
+/// 13.5%   2 elements  █████
+///  9.5%   3 elements  ███
+///  6.3%   4 elements  ██
+///  5.6%   5 elements  ██
+///  5.6%   6 elements  ██
+///  4.0%   7 elements  █
+///  3.1%   8 elements  █
+///  2.0%   9 elements  █
+///  8.0%  10 elements  ███
+/// ```
+pub fn set_between(fuzzer: Fuzzer<a>, min: Int, max: Int) -> Fuzzer<List<a>> {
+  if min > max {
+    set_between(fuzzer, max, min)
+  } else if max <= 0 {
+    constant([])
   } else {
-    right
+    do_list_between(
+      max - min,
+      if max == min {
+        -1
+      } else {
+        log2(max - min)
+      },
+      nub(100, fuzzer, _),
+      min,
+      max,
+      0,
+      [],
+    )
   }
 }
 
-/// Combine two fuzzers into a 2-tuple.
-pub fn both(left: Fuzzer<a>, right: Fuzzer<b>) -> Fuzzer<(a, b)> {
-  map2(left, right, fn(l, r) { (l, r) })
+/// Generate a random set of elements from a given fuzzer, with at least `min` elements.
+pub fn set_at_least(fuzzer: Fuzzer<a>, min: Int) -> Fuzzer<List<a>> {
+  set_between(fuzzer, min, min + 20)
 }
 
-/// Choose between `None` or `Some` value with an equal probability.
-pub fn option(fuzz_a: Fuzzer<a>) -> Fuzzer<Option<a>> {
-  bool()
-    |> and_then(
-        fn(predicate) {
-          if predicate {
-            fuzz_a |> map(Some)
-          } else {
-            constant(None)
-          }
-        },
-      )
+/// Generate a random set of elements from a given fuzzer, with at most `max` elements.
+pub fn set_at_most(fuzzer: Fuzzer<a>, max: Int) -> Fuzzer<List<a>> {
+  set_between(fuzzer, 0, max)
 }
 
-/// Generate a value that satisfies a given predicate. Beware that this
-/// function may heavily impact the performances of your fuzzers. In general, you
-/// should prefer constraining the fuzzers beforehand than trying to discard
-/// values after the fact!
-///
-/// Use with caution.
-pub fn such_that(fuzzer: Fuzzer<a>, predicate: fn(a) -> Bool) -> Fuzzer<a> {
-  do_such_that(fuzzer, predicate, 100)
+/// Generate a random set and pick an element from that set. Return both.
+pub fn set_with_elem(fuzzer: Fuzzer<a>) -> Fuzzer<(List<a>, a)> {
+  let xs <- and_then(set_at_least(fuzzer, 1))
+  let x <- map(one_of(xs))
+  (xs, x)
 }
 
-fn do_such_that(
-  fuzzer: Fuzzer<a>,
-  predicate: fn(a) -> Bool,
-  max_tries: Int,
-) -> Fuzzer<a> {
-  if max_tries <= 0 {
-    fail @"such_that: couldn't satisfy the predicate after 100 attempts."
+/// Construct a fuzzer that returns values not present in a given list.
+fn nub(n: Int, fuzzer: Fuzzer<a>, st: List<a>) -> Fuzzer<a> {
+  if n <= 0 {
+    fail @"gave up trying to find unique values: the fuzzer did not yield any *new* value after many tries!"
   } else {
-    let x <- and_then(fuzzer)
-    if predicate(x) {
-      constant(x)
+    let a <- and_then(fuzzer)
+    if list.has(st, a) {
+      nub(n - 1, fuzzer, st)
     } else {
-      do_such_that(fuzzer, predicate, max_tries - 1)
+      constant(a)
     }
   }
 }
+
+// ## Combining
 
 /// Combine a [Fuzzer](https://aiken-lang.github.io/prelude/aiken.html#Fuzzer) with the result of a another one.
 /// This function works great with [backpassing](https://aiken-lang.org/language-tour/functions#backpassing-).
@@ -527,6 +435,21 @@ pub fn and_then(fuzz_a: Fuzzer<a>, f: fn(a) -> Fuzzer<b>) -> Fuzzer<b> {
       Some((s1, a)) -> f(a)(s1)
       None -> None
     }
+  }
+}
+
+/// Combine two fuzzers into a 2-tuple.
+pub fn both(left: Fuzzer<a>, right: Fuzzer<b>) -> Fuzzer<(a, b)> {
+  map2(left, right, fn(l, r) { (l, r) })
+}
+
+/// Choose either of two fuzzers with an equal probability.
+pub fn either(left: Fuzzer<a>, right: Fuzzer<a>) -> Fuzzer<a> {
+  let pick_left <- and_then(bool())
+  if pick_left {
+    left
+  } else {
+    right
   }
 }
 
@@ -852,6 +775,88 @@ pub fn map9(
     }
   }
 }
+
+/// Pick a value from a (non-empty!) list with equal probability.
+///
+/// ```aiken
+/// let any_bool = fuzz.one_of([True, False])
+/// ```
+pub fn one_of(xs: List<a>) -> Fuzzer<a> {
+  let len = list.length(xs)
+  expect len > 0
+  int_between(0, len - 1)
+    |> map(
+        fn(ix: Int) {
+          expect Some(item) = list.at(xs, ix)
+          item
+        },
+      )
+}
+
+/// Choose between `None` or `Some` value with an equal probability.
+pub fn option(fuzz_a: Fuzzer<a>) -> Fuzzer<Option<a>> {
+  bool()
+    |> and_then(
+        fn(predicate) {
+          if predicate {
+            fuzz_a |> map(Some)
+          } else {
+            constant(None)
+          }
+        },
+      )
+}
+
+/// Take a random sublist from an existing list.
+pub fn sublist(xs: List<a>) -> Fuzzer<List<a>> {
+  let threshold <- and_then(rand)
+  when xs is {
+    [] -> constant([])
+    [head, ..tail] -> {
+      let n <- and_then(rand)
+      let rest <- map(sublist(tail))
+      if n < threshold {
+        [head, ..rest]
+      } else {
+        rest
+      }
+    }
+  }
+}
+
+/// Take a random subset from an existing set.
+pub fn subset(xs: List<a>) -> Fuzzer<List<a>> {
+  sublist(xs)
+}
+
+/// Generate a value that satisfies a given predicate. Beware that this
+/// function may heavily impact the performances of your fuzzers. In general, you
+/// should prefer constraining the fuzzers beforehand than trying to discard
+/// values after the fact!
+///
+/// Use with caution.
+pub fn such_that(fuzzer: Fuzzer<a>, predicate: fn(a) -> Bool) -> Fuzzer<a> {
+  do_such_that(fuzzer, predicate, 100)
+}
+
+fn do_such_that(
+  fuzzer: Fuzzer<a>,
+  predicate: fn(a) -> Bool,
+  max_tries: Int,
+) -> Fuzzer<a> {
+  if max_tries <= 0 {
+    fail @"such_that: couldn't satisfy the predicate after 100 attempts."
+  } else {
+    let x <- and_then(fuzzer)
+    if predicate(x) {
+      constant(x)
+    } else {
+      do_such_that(fuzzer, predicate, max_tries - 1)
+    }
+  }
+}
+
+// ## Inspecting
 
 /// Label a test case. Labels are collected at the end of a property run and a
 /// distribution amongst all labels is computed and shown. This is particularly
