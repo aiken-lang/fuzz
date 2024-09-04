@@ -6,7 +6,8 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     pre-commit-hooks-nix.url = "github:hercules-ci/pre-commit-hooks.nix/flakeModule";
     pre-commit-hooks-nix.inputs.nixpkgs.follows = "nixpkgs";
-    aiken.url = "github:aiken-lang/aiken/v1.0.29-alpha";
+    # aiken.url = "github:aiken-lang/aiken/v1.0.29-alpha";
+    aiken.url = "github:waalge/aiken/waalge/bump-flake";
     treefmt-nix.url = "github:numtide/treefmt-nix";
   };
 

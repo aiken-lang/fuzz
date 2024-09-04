@@ -1,10 +1,10 @@
-use aiken/bytearray
+use aiken/primitive/bytearray
 use aiken/fuzz.{
   and_then, bool, int, int_between, label, list, list_between, list_with_elem,
   map, one_of, set, set_between, sublist, such_that,
 }
-use aiken/list
-use aiken/string
+use aiken/collection/list
+use aiken/primitive/string
 
 test prop_int_distribution(n via int()) {
   label(

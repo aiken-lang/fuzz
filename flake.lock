@@ -7,16 +7,16 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1717664547,
-        "narHash": "sha256-fikXypc9HKil4Ut4jdgQtTTy/CHEogEpDprwdTgd9b4=",
-        "owner": "aiken-lang",
+        "lastModified": 1725380450,
+        "narHash": "sha256-ItUBoe9sIEIJ+DXuos+3nB1J80x/HMKLsM4mm4asVPo=",
+        "owner": "waalge",
         "repo": "aiken",
-        "rev": "16fb02ee49879deb16ebacefa3b26ee5a57b7f8b",
+        "rev": "0a8f1f49302a4f5a0df6daafe069f2329b23d7e8",
         "type": "github"
       },
       "original": {
-        "owner": "aiken-lang",
-        "ref": "v1.0.29-alpha",
+        "owner": "waalge",
+        "ref": "waalge/bump-flake",
         "repo": "aiken",
         "type": "github"
       }
