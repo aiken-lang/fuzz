@@ -6,7 +6,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     pre-commit-hooks-nix.url = "github:hercules-ci/pre-commit-hooks.nix/flakeModule";
     pre-commit-hooks-nix.inputs.nixpkgs.follows = "nixpkgs";
-    aiken.url = "github:aiken-lang/aiken/v1.0.29-alpha";
+    aiken.url = "github:aiken-lang/aiken";
     treefmt-nix.url = "github:numtide/treefmt-nix";
   };
 
@@ -39,7 +39,7 @@
               echo 1>&2 "Welcome to the development shell!"
             '';
             name = "hello-aiken";
-            packages = with pkgs; [
+            packages = [
               inputs'.aiken.packages.aiken
             ];
           };
