@@ -217,19 +217,17 @@ test prop_fraction_between_bounds(
   fraction via rational_between(rational.new(-255, 1), rational.new(255, 1)),
 ) {
   fraction_distribution(fraction)
-
-  expect Some(min_bound) = rational.new(-255, 1)
-  expect Some(max_bound) = rational.new(255, 1)
-
+  expect Some(lower_bound) = rational.new(-255, 1)
+  expect Some(upper_bound) = rational.new(255, 1)
   (
-    rational.compare(fraction, min_bound) == Greater || rational.compare(
+    rational.compare(fraction, lower_bound) == Greater || rational.compare(
       fraction,
-      min_bound,
+      lower_bound,
     ) == Equal
   ) && (
-    rational.compare(fraction, max_bound) == Less || rational.compare(
+    rational.compare(fraction, upper_bound) == Less || rational.compare(
       fraction,
-      max_bound,
+      upper_bound,
     ) == Equal
   )
 }
@@ -238,19 +236,17 @@ test prop_at_least_for_positive_fractions(
   fraction via rational_at_least(rational.new(1, 1)),
 ) {
   fraction_distribution(fraction)
-
-  expect Some(min_bound) = rational.new(1, 1)
-  expect Some(max_bound) = rational.new(255, 1)
-
+  expect Some(lower_bound) = rational.new(1, 1)
+  expect Some(upper_bound) = rational.new(255, 1)
   (
-    rational.compare(fraction, min_bound) == Greater || rational.compare(
+    rational.compare(fraction, lower_bound) == Greater || rational.compare(
       fraction,
-      min_bound,
+      lower_bound,
     ) == Equal
   ) && (
-    rational.compare(fraction, max_bound) == Less || rational.compare(
+    rational.compare(fraction, upper_bound) == Less || rational.compare(
       fraction,
-      max_bound,
+      upper_bound,
     ) == Equal
   )
 }
@@ -259,37 +255,38 @@ test prop_at_most_for_negative_fraction(
   fraction via rational_at_most(rational.new(0, 1)),
 ) {
   fraction_distribution(fraction)
-  expect Some(min_bound) = rational.new(-255, 1)
-  expect Some(max_bound) = rational.new(0, 1)
+  expect Some(lower_bound) = rational.new(-255, 1)
+  expect Some(upper_bound) = rational.new(0, 1)
   (
-    rational.compare(fraction, min_bound) == Greater || rational.compare(
+    rational.compare(fraction, lower_bound) == Greater || rational.compare(
       fraction,
-      min_bound,
+      lower_bound,
     ) == Equal
   ) && (
-    rational.compare(fraction, max_bound) == Less || rational.compare(
+    rational.compare(fraction, upper_bound) == Less || rational.compare(
       fraction,
-      max_bound,
+      upper_bound,
     ) == Equal
   )
 }
 
 fn fraction_distribution(fraction: Rational) {
-  expect Some(bound1) = rational.new(-255, 1)
-  expect Some(bound2) = rational.new(-100, 1)
-  expect Some(bound3) = rational.new(0, 1)
-  expect Some(bound4) = rational.new(100, 1)
-  expect Some(bound5) = rational.new(256, 1)
+  expect Some(bound_1) = rational.new(-255, 1)
+  expect Some(bound_2) = rational.new(-100, 1)
+  expect Some(bound_3) = rational.new(0, 1)
+  expect Some(bound_4) = rational.new(100, 1)
+  expect Some(bound_5) = rational.new(256, 1)
+
   label(
-    if rational.compare(fraction, bound1) == Less {
+    if rational.compare(fraction, bound_1) == Less {
       fail
-    } else if rational.compare(fraction, bound2) == Less {
+    } else if rational.compare(fraction, bound_2) == Less {
       @"[-255,-101]"
-    } else if rational.compare(fraction, bound3) == Less {
+    } else if rational.compare(fraction, bound_3) == Less {
       @"[-100,-1]"
-    } else if rational.compare(fraction, bound4) == Less {
+    } else if rational.compare(fraction, bound_4) == Less {
       @"[0, 100]"
-    } else if rational.compare(fraction, bound5) == Less {
+    } else if rational.compare(fraction, bound_5) == Less {
       @"[101,255]"
     } else {
       @">255"
