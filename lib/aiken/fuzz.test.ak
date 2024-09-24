@@ -1,7 +1,8 @@
 use aiken/collection/list
 use aiken/fuzz.{
-  and_then, bool, int, int_between, label, list_between, list_with_elem, map,
-  one_of, set, set_between, sublist, such_that,
+  and_then, bool, constant, either3, either4, either5, either6, either7, either8,
+  either9, int, int_between, label, list_between, list_with_elem, map, one_of,
+  set, set_between, sublist, such_that,
 }
 use aiken/math
 use aiken/primitive/bytearray
@@ -208,6 +209,93 @@ test prop_set_between_distribution(n via set_between(int_between(0, 50), 3, 13))
 // test prop_set_exhausted(xs via set(int_between(0, 3))) {
 //   True
 // }
+
+test prop_either3(
+  lbl via either3(constant(@"a"), constant(@"b"), constant(@"c")),
+) {
+  label(lbl)
+}
+
+test prop_either4(
+  lbl via either4(
+    constant(@"a"),
+    constant(@"b"),
+    constant(@"c"),
+    constant(@"d"),
+  ),
+) {
+  label(lbl)
+}
+
+test prop_either5(
+  lbl via either5(
+    constant(@"a"),
+    constant(@"b"),
+    constant(@"c"),
+    constant(@"d"),
+    constant(@"e"),
+  ),
+) {
+  label(lbl)
+}
+
+test prop_either6(
+  lbl via either6(
+    constant(@"a"),
+    constant(@"b"),
+    constant(@"c"),
+    constant(@"d"),
+    constant(@"e"),
+    constant(@"f"),
+  ),
+) {
+  label(lbl)
+}
+
+test prop_either7(
+  lbl via either7(
+    constant(@"a"),
+    constant(@"b"),
+    constant(@"c"),
+    constant(@"d"),
+    constant(@"e"),
+    constant(@"f"),
+    constant(@"g"),
+  ),
+) {
+  label(lbl)
+}
+
+test prop_either8(
+  lbl via either8(
+    constant(@"a"),
+    constant(@"b"),
+    constant(@"c"),
+    constant(@"d"),
+    constant(@"e"),
+    constant(@"f"),
+    constant(@"g"),
+    constant(@"h"),
+  ),
+) {
+  label(lbl)
+}
+
+test prop_either9(
+  lbl via either9(
+    constant(@"a"),
+    constant(@"b"),
+    constant(@"c"),
+    constant(@"d"),
+    constant(@"e"),
+    constant(@"f"),
+    constant(@"g"),
+    constant(@"h"),
+    constant(@"i"),
+  ),
+) {
+  label(lbl)
+}
 
 /// A small function for automatically labelling a range of ints.
 fn buckets(n, start, end, increment) -> Void {

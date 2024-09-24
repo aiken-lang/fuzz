@@ -324,6 +324,13 @@ pub fn list_with_elem(fuzzer: Fuzzer<a>) -> Fuzzer<(List<a>, a)> {
   (xs, x)
 }
 
+/// Pick an element from a list, returning its index.
+pub fn pick(xs: List<a>) -> Fuzzer<(Int, a)> {
+  let ix <- map(int_between(0, list.length(xs) - 1))
+  expect Some(x) = list.at(xs, ix)
+  (ix, x)
+}
+
 /// Generate a random list of **unique** elements (a.k.a. a set) from a given fuzzer.
 /// The list contains *at most `20`* elements, and has a higher probability of
 /// generating smaller lists.
@@ -450,6 +457,225 @@ pub fn either(left: Fuzzer<a>, right: Fuzzer<a>) -> Fuzzer<a> {
     left
   } else {
     right
+  }
+}
+
+/// Choose either of three fuzzers with an equal probability.
+pub fn either3(
+  a: Fuzzer<result>,
+  b: Fuzzer<result>,
+  c: Fuzzer<result>,
+) -> Fuzzer<result> {
+  let ix <- and_then(byte())
+  if ix < 85 {
+    a
+  } else if ix < 170 {
+    b
+  } else {
+    c
+  }
+}
+
+/// Choose either of four fuzzers with an equal probability.
+pub fn either4(
+  a: Fuzzer<result>,
+  b: Fuzzer<result>,
+  c: Fuzzer<result>,
+  d: Fuzzer<result>,
+) -> Fuzzer<result> {
+  let ix <- and_then(byte())
+  if ix < 128 {
+    if ix < 64 {
+      a
+    } else {
+      b
+    }
+  } else {
+    if ix < 192 {
+      c
+    } else {
+      d
+    }
+  }
+}
+
+/// Choose either of five fuzzers with an equal probability.
+pub fn either5(
+  a: Fuzzer<result>,
+  b: Fuzzer<result>,
+  c: Fuzzer<result>,
+  d: Fuzzer<result>,
+  e: Fuzzer<result>,
+) -> Fuzzer<result> {
+  let ix <- and_then(byte())
+  if ix < 102 {
+    if ix < 51 {
+      a
+    } else {
+      b
+    }
+  } else if ix < 204 {
+    if ix < 153 {
+      c
+    } else {
+      d
+    }
+  } else {
+    e
+  }
+}
+
+/// Choose either of six fuzzers with an equal probability.
+pub fn either6(
+  a: Fuzzer<result>,
+  b: Fuzzer<result>,
+  c: Fuzzer<result>,
+  d: Fuzzer<result>,
+  e: Fuzzer<result>,
+  f: Fuzzer<result>,
+) -> Fuzzer<result> {
+  let ix <- and_then(byte())
+  if ix < 128 {
+    if ix < 42 {
+      a
+    } else if ix < 85 {
+      b
+    } else {
+      c
+    }
+  } else {
+    if ix < 170 {
+      d
+    } else if ix < 212 {
+      e
+    } else {
+      f
+    }
+  }
+}
+
+/// Choose either of seven fuzzers with an equal probability.
+pub fn either7(
+  a: Fuzzer<result>,
+  b: Fuzzer<result>,
+  c: Fuzzer<result>,
+  d: Fuzzer<result>,
+  e: Fuzzer<result>,
+  f: Fuzzer<result>,
+  g: Fuzzer<result>,
+) -> Fuzzer<result> {
+  let ix <- and_then(byte())
+  if ix < 110 {
+    if ix < 36 {
+      a
+    } else if ix < 72 {
+      b
+    } else {
+      c
+    }
+  } else {
+    if ix < 182 {
+      if ix < 145 {
+        d
+      } else {
+        e
+      }
+    } else {
+      if ix < 218 {
+        f
+      } else {
+        g
+      }
+    }
+  }
+}
+
+/// Choose either of height fuzzers with an equal probability.
+pub fn either8(
+  a: Fuzzer<result>,
+  b: Fuzzer<result>,
+  c: Fuzzer<result>,
+  d: Fuzzer<result>,
+  e: Fuzzer<result>,
+  f: Fuzzer<result>,
+  g: Fuzzer<result>,
+  h: Fuzzer<result>,
+) -> Fuzzer<result> {
+  let ix <- and_then(byte())
+  if ix < 128 {
+    if ix < 64 {
+      if ix < 32 {
+        a
+      } else {
+        b
+      }
+    } else {
+      if ix < 96 {
+        c
+      } else {
+        d
+      }
+    }
+  } else {
+    if ix < 192 {
+      if ix < 160 {
+        e
+      } else {
+        f
+      }
+    } else {
+      if ix < 224 {
+        g
+      } else {
+        h
+      }
+    }
+  }
+}
+
+/// Choose either of nine fuzzers with an equal probability.
+pub fn either9(
+  a: Fuzzer<result>,
+  b: Fuzzer<result>,
+  c: Fuzzer<result>,
+  d: Fuzzer<result>,
+  e: Fuzzer<result>,
+  f: Fuzzer<result>,
+  g: Fuzzer<result>,
+  h: Fuzzer<result>,
+  i: Fuzzer<result>,
+) -> Fuzzer<result> {
+  let ix <- and_then(byte())
+  if ix < 112 {
+    if ix < 56 {
+      if ix < 28 {
+        a
+      } else {
+        b
+      }
+    } else {
+      if ix < 84 {
+        c
+      } else {
+        d
+      }
+    }
+  } else {
+    if ix < 172 {
+      if ix < 144 {
+        e
+      } else {
+        f
+      }
+    } else {
+      if ix < 200 {
+        g
+      } else if ix < 228 {
+        h
+      } else {
+        i
+      }
+    }
   }
 }
 
