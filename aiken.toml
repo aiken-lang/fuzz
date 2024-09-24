@@ -1,5 +1,5 @@
 name = "aiken-lang/fuzz"
-version = "main"
+version = "2.1.0"
 compiler = "v1.1.3"
 plutus = "v3"
 license = "Apache-2.0"
