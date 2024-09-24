@@ -32,10 +32,14 @@ pub fn byte() -> Fuzzer<Int> {
 pub fn bytearray() -> Fuzzer<ByteArray> {
   let lsb <- and_then(rand)
   let msb <- map(rand)
-  ""
-    |> builtin.cons_bytearray(lsb, _)
-    |> builtin.cons_bytearray(msb, _)
-    |> builtin.blake2b_256
+  if lsb + msb == 0 {
+    #"0000000000000000000000000000000000000000000000000000000000000000"
+  } else {
+    ""
+      |> builtin.cons_bytearray(lsb, _)
+      |> builtin.cons_bytearray(msb, _)
+      |> builtin.blake2b_256
+  }
 }
 
 /// Generate a random [`ByteArray`](https://aiken-lang.github.io/prelude/aiken.html#ByteArray) of
@@ -1108,7 +1112,8 @@ pub fn label(str: String) -> Void {
 }
 
 /// Apply a label when a predicate is true, or fallback to a default label.
-/// Useful for labelling specific scenarios based on a predicate.
+/// Useful for labelling dichotomies while ensuring that the final label
+/// distribution reflects all cases.
 ///
 /// ```aiken
 /// test prop_u16(operands via fuzz.both(byte(), byte())) {
@@ -1128,6 +1133,28 @@ pub fn label_when(predicate: Bool, str: String, default: String) -> Void {
     label(str)
   } else {
     label(default)
+  }
+}
+
+/// Apply a label when a predicate is true, or do nothing. Useful for
+/// conditionally labelling scenarios in a single line.
+///
+/// ```aiken
+/// test post_conditions(steps via any_scenario()) {
+///   let (is_register, is_reregister, is_unregister, is_forward) =
+///     classify_steps(steps)
+///
+///   @"contains solo registration" |> label_if(is_register)
+///   @"contains re-registration" |> label_if(is_reregister)
+///   @"contains solo unregistration" |> label_if(is_unregister)
+///   @"contains forward-only" |> label_if(is_forward)
+/// }
+/// ```
+pub fn label_if(str: String, predicate: Bool) -> Void {
+  if predicate {
+    label(str)
+  } else {
+    Void
   }
 }
 

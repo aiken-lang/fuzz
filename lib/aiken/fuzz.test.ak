@@ -39,6 +39,10 @@ test prop_int_between_large(
   n <= 18_446_744_073_709_551_615
 }
 
+test prop_bytearray_simplify(bytes via fuzz.bytearray()) fail once {
+  bytes == ""
+}
+
 test prop_bool_distribution(is_true via bool()) {
   label(
     if is_true {
