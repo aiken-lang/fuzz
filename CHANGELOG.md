@@ -1,5 +1,19 @@
 # Changelog
 
+## v2.1.0 - 2024-09-24
+
+### Added
+
+- More primitives for combining fuzzers:
+    - `either2`, `either3`, `either4`, `either5`, `either6`, `either7`, `either8`, `either9`
+    - `pick(xs: List<a>) -> Fuzzer<(Int, a)>`
+    - `label_if(str: String, predicate: Bool) -> Void`
+
+### Changed
+
+- Have bytearray primitives simplify towards the null bytestring (32 zeroes),
+  so that it's easier to identify in simplified examples.
+
 ## v2.0.0 - 2024-09-01
 
 ### Changed
