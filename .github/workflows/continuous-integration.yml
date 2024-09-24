@@ -23,8 +23,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: 🧰 Install Aiken
-        run: cargo install --verbose --git https://github.com/aiken-lang/aiken.git
+      - uses: aiken-lang/setup-aiken@v1
+        with:
+          version: v1.1.3
       - run: aiken fmt --check
       - run: aiken check -D
       - run: aiken build
