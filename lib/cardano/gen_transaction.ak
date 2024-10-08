@@ -1,12 +1,13 @@
 use aiken/collection/list
-use aiken/crypto.{ScriptHash}
+use aiken/crypto.{ScriptHash, VerificationKeyHash}
 use aiken/fuzz.{
   and_then, bytearray_between, constant, int, int_between, list_between, map,
   map2, option,
 }
 use cardano/address.{Credential}
 use cardano/address/credential
-use cardano/assets.{AssetName, Lovelace, PolicyId}
+use cardano/assets.{AssetName, Lovelace, PolicyId, Value}
+use cardano/certificate.{Certificate}
 use cardano/gen_address.{any_address, any_credential}
 use cardano/gen_assets.{any_constrained_value, any_value}
 use cardano/transaction.{
@@ -14,34 +15,6 @@ use cardano/transaction.{
   Transaction,
 }
 
-// INPUTS
-// OUTPUTS
-// 
-
-// pub type Transaction {
-// inputs: List<Input>,
-// reference_inputs: List<Input>,
-// outputs: List<Output>,
-// fee: Lovelace,
-// mint: Value,
-// certificates: List<Certificate>,
-// /// > [!IMPORTANT]
-// /// > Withdrawals are ordered by ascending [Credential](./credential.html#Credential). Yet, note that [`Script`](./credential.html#Credential) credentials are treated as **lower values** than [`VerificationKey`](./credential.html#Credential) credentials.
-// withdrawals: Pairs<Credential, Lovelace>,
-// validity_range: ValidityRange,
-// extra_signatories: List<VerificationKeyHash>,
-// /// > [!IMPORTANT]
-// /// > Redeemers are ordered by ascending [ScriptPurpose](./transaction.html#ScriptPurpose).
-// redeemers: Pairs<ScriptPurpose, Redeemer>,
-// datums: Dict<DataHash, Data>,
-// id: TransactionId,
-// /// > [!IMPORTANT]
-// /// > Votes are ordered by ascending [Voter](./governance.html#Voter) and [GovernanceActionId](./governance.html#GovernanceActionId).<br/>First constructor variants in a type are treated as lower indices; except for [Credential](./credential.html#Credential) where [`Script`](./credential.html#Credential) credentials are treated as **lower values** than [`VerificationKey`](./credential.html#Credential) credentials.
-// votes: Pairs<Voter, Pairs<GovernanceActionId, Vote>>,
-// proposal_procedures: List<ProposalProcedure>,
-// current_treasury_amount: Option<Lovelace>,
-// treasury_donation: Option<Lovelace>,
-// }
 pub fn any_datum() -> Fuzzer<Datum> {
   let variant <- and_then(int_between(0, 2))
   when variant is {
@@ -87,6 +60,47 @@ pub fn any_constrained_output(
   let datum <- and_then(datum)
   let reference_script <- map(any_reference_script())
   Output { address, value, datum, reference_script }
+}
+
+pub fn any_constrained_outputs(
+  constraints: List<Pair<PolicyId, List<Pair<AssetName, Pair<Int, Int>>>>>,
+  datum: Fuzzer<Datum>,
+  min_outs: Int,
+  max_outs: Int,
+) -> Fuzzer<List<Output>> {
+  let non_normalized <-
+    and_then(list_between(int_between(1, 100), min_outs, max_outs))
+  let sum_nn = list.foldr(non_normalized, 0, fn(e, acc) { acc + e })
+  let normalized = list.map(non_normalized, fn(e) { 100 * e / sum_nn })
+  list.foldr(
+    normalized,
+    constant([]),
+    fn(e, acc) {
+      let sub_constraints =
+        list.map(
+          constraints,
+          fn(constraint) {
+            let Pair(policy_id, asset_constraints) = constraint
+            let updated_asset_constraints =
+              list.map(
+                asset_constraints,
+                fn(asset_constraint) {
+                  let Pair(asset_name, Pair(min, max)) = asset_constraint
+                  let sub_min = min * e / 100
+                  let sub_max = max * e / 100
+                  Pair(asset_name, Pair(sub_min, sub_max))
+                },
+              )
+            Pair(policy_id, updated_asset_constraints)
+          },
+        )
+      map2(
+        any_constrained_output(sub_constraints, datum),
+        acc,
+        fn(no, a) { [no, ..a] },
+      )
+    },
+  )
 }
 
 pub fn any_output_reference() -> Fuzzer<OutputReference> {
@@ -149,80 +163,120 @@ pub fn any_withdrawals_extending(
 
 // Transaction stuffz
 
-pub fn add_fuzz_withdrawals(
-  withdraws: Fuzzer<Pairs<Credential, Lovelace>>,
-  tx: Transaction,
-) -> Fuzzer<Transaction> {
-  map(
-    withdraws,
-    fn(w) { Transaction { ..tx, withdrawals: list.concat(w, tx.withdrawals) } },
-  )
-}
-
 pub fn add_fuzz_input(
+  self: Transaction,
   input: Fuzzer<Input>,
-  tx: Transaction,
 ) -> Fuzzer<Transaction> {
   map(
     input,
-    fn(in) { Transaction { ..tx, inputs: [in, ..tx.reference_inputs] } },
+    fn(in) { Transaction { ..self, inputs: [in, ..self.reference_inputs] } },
   )
 }
 
 pub fn add_fuzz_inputs(
+  self: Transaction,
   ins: Fuzzer<List<Input>>,
-  tx: Transaction,
 ) -> Fuzzer<Transaction> {
   map(
     ins,
-    fn(ins) { Transaction { ..tx, inputs: list.concat(ins, tx.inputs) } },
+    fn(ins) { Transaction { ..self, inputs: list.concat(ins, self.inputs) } },
   )
 }
 
 pub fn add_fuzz_ref_input(
+  self: Transaction,
   input: Fuzzer<Input>,
-  tx: Transaction,
 ) -> Fuzzer<Transaction> {
   map(
     input,
     fn(in) {
-      Transaction { ..tx, reference_inputs: [in, ..tx.reference_inputs] }
+      Transaction { ..self, reference_inputs: [in, ..self.reference_inputs] }
     },
   )
 }
 
 pub fn add_fuzz_ref_inputs(
+  self: Transaction,
   inputs: Fuzzer<List<Input>>,
-  tx: Transaction,
 ) -> Fuzzer<Transaction> {
   map(
     inputs,
     fn(ins) {
       Transaction {
-        ..tx,
-        reference_inputs: list.concat(ins, tx.reference_inputs),
+        ..self,
+        reference_inputs: list.concat(ins, self.reference_inputs),
       }
     },
   )
 }
 
 pub fn add_fuzz_output(
+  self: Transaction,
   output: Fuzzer<Output>,
-  tx: Transaction,
-) -> Fuzzer<Transaction> {
-  map(output, fn(out) { Transaction { ..tx, outputs: [out, ..tx.outputs] } })
-}
-
-pub fn add_fuzz_outputs(
-  outs: Fuzzer<List<Output>>,
-  tx: Transaction,
 ) -> Fuzzer<Transaction> {
   map(
-    outs,
-    fn(os) { Transaction { ..tx, outputs: list.concat(os, tx.outputs) } },
+    output,
+    fn(out) { Transaction { ..self, outputs: [out, ..self.outputs] } },
   )
 }
 
-pub fn balance_tx(tx: Transaction) -> Transaction {
+pub fn add_fuzz_outputs(
+  self: Transaction,
+  outs: Fuzzer<List<Output>>,
+) -> Fuzzer<Transaction> {
+  map(
+    outs,
+    fn(os) { Transaction { ..self, outputs: list.concat(os, self.outputs) } },
+  )
+}
+
+pub fn add_fuzz_mint(
+  self: Transaction,
+  mint: Fuzzer<Value>,
+) -> Fuzzer<Transaction> {
+  map(mint, fn(m) { Transaction { ..self, mint: m } })
+}
+
+pub fn add_fuzz_cert(
+  self: Transaction,
+  cert: Fuzzer<Certificate>,
+) -> Fuzzer<Transaction> {
+  map(
+    cert,
+    fn(c) { Transaction { ..self, certificates: [c, ..self.certificates] } },
+  )
+}
+
+pub fn add_fuzz_withdrawals(
+  self: Transaction,
+  withdraws: Fuzzer<Pairs<Credential, Lovelace>>,
+) -> Fuzzer<Transaction> {
+  map(
+    withdraws,
+    fn(w) {
+      Transaction { ..self, withdrawals: list.concat(w, self.withdrawals) }
+    },
+  )
+}
+
+pub fn add_fuzz_signers(
+  self: Transaction,
+  signers: Fuzzer<List<VerificationKeyHash>>,
+) -> Fuzzer<Transaction> {
+  map(
+    signers,
+    fn(s) {
+      Transaction {
+        ..self,
+        extra_signatories: list.concat(s, self.extra_signatories),
+      }
+    },
+  )
+}
+
+pub fn balance_tx(self: Transaction) -> Transaction {
+  // First reduce the inputs, withdrawals, and any deregistration amounts from certs.
+  // Then reduce outputs and fee.
+  // Create a single output or input that balances the self.
   todo
 }
