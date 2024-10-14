@@ -101,7 +101,7 @@ pub fn any_retire_cc_cert() -> Fuzzer<Certificate> {
   map(any_credential(), fn(c) { RetireFromConstitutionalCommittee(c) })
 }
 
-fn any_delegate() -> Fuzzer<Delegate> {
+pub fn any_delegate() -> Fuzzer<Delegate> {
   let choice <- and_then(int_between(0, 2))
   when choice is {
     0 -> map(bytearray_between(32, 32), fn(b) { DelegateBlockProduction(b) })
@@ -116,7 +116,7 @@ fn any_delegate() -> Fuzzer<Delegate> {
   }
 }
 
-fn any_drep() -> Fuzzer<DelegateRepresentative> {
+pub fn any_drep() -> Fuzzer<DelegateRepresentative> {
   let choice <- and_then(int_between(0, 2))
   when choice is {
     0 -> map(any_credential(), fn(c) { Registered(c) })
