@@ -1,9 +1,11 @@
+use aiken/collection/dict
 use aiken/collection/list
 use aiken/crypto.{ScriptHash, VerificationKeyHash}
 use aiken/fuzz.{
   and_then, bytearray_between, constant, int, int_between, list_between, map,
   map2, map7, option,
 }
+use aiken/interval
 use cardano/address.{Credential}
 use cardano/address/credential
 use cardano/assets.{
@@ -284,6 +286,33 @@ pub fn add_fuzz_signers(
       }
     },
   )
+}
+
+pub fn base_tx() -> Transaction {
+  Transaction(
+    [],
+    [],
+    [],
+    0,
+    assets.zero,
+    [],
+    [],
+    interval.empty,
+    [],
+    [],
+    dict.empty,
+    #"",
+    [],
+    [],
+    None,
+    None,
+  )
+}
+
+pub fn any_generic_tx() -> Fuzzer<Transaction> {
+  let tx = base_tx()
+  let tx <- fuzz.and_then(add_fuzz_inputs(tx, fuzz.list(any_input())))
+  add_fuzz_outputs(tx, fuzz.list(any_output()))
 }
 
 // TODO - Rewrite this handling separate parts of the tx separately.
