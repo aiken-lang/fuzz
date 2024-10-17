@@ -155,115 +155,25 @@ pub fn run(
   publish: fn(Data, Certificate, Transaction) -> Bool,
   vote: fn(Data, Voter, Transaction) -> Bool,
 ) {
-  run_with_else(
-    scenario,
-    script,
-    mint,
-    False,
-    spend,
-    False,
-    withdraw,
-    False,
-    publish,
-    False,
-    vote,
-    False,
-    fn(_) { fail },
-  )
-}
-
-// Start of Selection
-pub fn run_with_else(
-  scenario: List<Transaction>,
-  script: ScriptHash,
-  mint: fn(Data, PolicyId, Transaction) -> Bool,
-  use_else_mint: Bool,
-  spend: fn(Option<Data>, Data, OutputReference, Transaction) -> Bool,
-  use_else_spend: Bool,
-  withdraw: fn(Data, Credential, Transaction) -> Bool,
-  use_else_withdraw: Bool,
-  publish: fn(Data, Certificate, Transaction) -> Bool,
-  use_else_publish: Bool,
-  vote: fn(Data, Voter, Transaction) -> Bool,
-  use_else_vote: Bool,
-  else_branch: fn(ScriptContext) -> Bool,
-) {
   when scenario is {
     [] -> Void
     [next, ..tail] -> {
-      expect
-        if use_else_mint {
-          else_mint_handlers(next, script, else_branch)
-        } else {
-          mint_handlers(next, script, mint)
-        }
-      expect
-        if use_else_spend {
-          else_spend_handlers(next, script, else_branch)
-        } else {
-          spend_handlers(next, script, spend)
-        }
-      expect
-        if use_else_withdraw {
-          else_withdraw_handlers(next, script, else_branch)
-        } else {
-          withdraw_handlers(next, script, withdraw)
-        }
-      expect
-        if use_else_publish {
-          else_publish_handlers(next, script, else_branch)
-        } else {
-          publish_handlers(next, script, publish)
-        }
-      expect
-        if use_else_vote {
-          else_vote_handlers(next, script, else_branch)
-        } else {
-          vote_handlers(next, script, vote)
-        }
-      run_with_else(
-        tail,
-        script,
-        mint,
-        use_else_mint,
-        spend,
-        use_else_spend,
-        withdraw,
-        use_else_withdraw,
-        publish,
-        use_else_publish,
-        vote,
-        use_else_vote,
-        else_branch,
-      )
+      expect mint_handlers(next, script, mint)
+      expect spend_handlers(next, script, spend)
+      expect withdraw_handlers(next, script, withdraw)
+      expect publish_handlers(next, script, publish)
+      expect vote_handlers(next, script, vote)
+      run(tail, script, mint, spend, withdraw, publish, vote)
     }
   }
 }
 
-fn else_mint_handlers(
-  self: Transaction,
-  script: ScriptHash,
+pub fn else_to_mint(
   mint: fn(ScriptContext) -> Bool,
-) {
-  list.foldr(
-    assets.policies(self.mint),
-    True,
-    fn(policy_id, st) {
-      if policy_id == script {
-        and {
-          st,
-          {
-            expect Some(redeemer) =
-              pairs.get_first(self.redeemers, Mint(policy_id))
-            // TODO - We need to create a ctx from the info we have.
-            mint(ScriptContext(self, redeemer, Minting(policy_id)))
-          },
-        }
-      } else {
-        st
-      }
-    },
-  )
+) -> fn(Data, PolicyId, Transaction) -> Bool {
+  fn(r: Data, p: PolicyId, t: Transaction) -> Bool {
+    mint(ScriptContext(t, r, Minting(p)))
+  }
 }
 
 fn mint_handlers(
@@ -291,41 +201,10 @@ fn mint_handlers(
   )
 }
 
-fn else_spend_handlers(
-  self: Transaction,
-  script: ScriptHash,
-  spend: fn(ScriptContext) -> Bool,
-) {
-  list.foldr(
-    self.inputs,
-    True,
-    fn(input, st) {
-      if input.output.address.payment_credential == Script(script) {
-        and {
-          st,
-          {
-            expect Some(redeemer) =
-              pairs.get_first(self.redeemers, Spend(input.output_reference))
-            let datum =
-              when input.output.datum is {
-                NoDatum -> None
-                DatumHash(digest) -> dict.get(self.datums, digest)
-                InlineDatum(datum) -> Some(datum)
-              }
-            spend(
-              ScriptContext(
-                self,
-                redeemer,
-                Spending(input.output_reference, datum),
-              ),
-            )
-          },
-        }
-      } else {
-        st
-      }
-    },
-  )
+pub fn else_to_spend(spend: fn(ScriptContext) -> Bool) {
+  fn(d: Option<Data>, r: Data, o_ref: OutputReference, t: Transaction) -> Bool {
+    spend(ScriptContext(t, r, Spending(o_ref, d)))
+  }
 }
 
 fn spend_handlers(
@@ -359,29 +238,10 @@ fn spend_handlers(
   )
 }
 
-fn else_withdraw_handlers(
-  self: Transaction,
-  script: ScriptHash,
-  withdraw: fn(ScriptContext) -> Bool,
-) {
-  pairs.foldr(
-    self.withdrawals,
-    True,
-    fn(account, _amount, st) {
-      if account == Script(script) {
-        and {
-          st,
-          {
-            expect Some(redeemer) =
-              pairs.get_first(self.redeemers, Withdraw(account))
-            withdraw(ScriptContext(self, redeemer, Withdrawing(account)))
-          },
-        }
-      } else {
-        st
-      }
-    },
-  )
+pub fn else_to_withdraw(withdraw: fn(ScriptContext) -> Bool) {
+  fn(r: Data, cred: Credential, t: Transaction) -> Bool {
+    withdraw(ScriptContext(t, r, Withdrawing(cred)))
+  }
 }
 
 fn withdraw_handlers(
@@ -409,54 +269,11 @@ fn withdraw_handlers(
   )
 }
 
-fn else_publish_handlers(
-  self: Transaction,
-  script: ScriptHash,
-  publish: fn(ScriptContext) -> Bool,
-) {
-  list.indexed_foldr(
-    self.certificates,
-    True,
-    fn(ix, certificate, st) {
-      when certificate is {
-        UnregisterCredential { credential, .. } |
-        DelegateCredential { credential, .. } |
-        RegisterAndDelegateCredential { credential, .. } |
-        RegisterDelegateRepresentative {
-          delegate_representative: credential,
-          ..
-        } |
-        UpdateDelegateRepresentative { delegate_representative: credential } |
-        UnregisterDelegateRepresentative {
-          delegate_representative: credential,
-          ..
-        } |
-        AuthorizeConstitutionalCommitteeProxy {
-          constitutional_committee_member: credential,
-          ..
-        } |
-        RetireFromConstitutionalCommittee {
-          constitutional_committee_member: credential,
-        } ->
-          if credential == Script(script) {
-            and {
-              st,
-              {
-                expect Some(redeemer) =
-                  pairs.get_first(self.redeemers, Publish(ix, certificate))
-                publish(
-                  ScriptContext(self, redeemer, Publishing(ix, certificate)),
-                )
-              },
-            }
-          } else {
-            st
-          }
-
-        _ -> st
-      }
-    },
-  )
+pub fn else_to_publish(publish: fn(ScriptContext) -> Bool) {
+  fn(r: Data, c: Certificate, t: Transaction) -> Bool {
+    expect Some(ix) = list.index_of(t.certificates, c)
+    publish(ScriptContext(t, r, Publishing(ix, c)))
+  }
 }
 
 fn publish_handlers(
@@ -507,33 +324,10 @@ fn publish_handlers(
   )
 }
 
-fn else_vote_handlers(
-  self: Transaction,
-  script: ScriptHash,
-  vote: fn(ScriptContext) -> Bool,
-) {
-  pairs.foldr(
-    self.votes,
-    True,
-    fn(voter, _vote, st) {
-      let relevant = or {
-          voter == DelegateRepresentative(Script(script)),
-          voter == ConstitutionalCommitteeMember(Script(script)),
-        }
-
-      if relevant {
-        and {
-          st,
-          {
-            expect Some(redeemer) = pairs.get_first(self.redeemers, Vote(voter))
-            vote(ScriptContext(self, redeemer, Voting(voter)))
-          },
-        }
-      } else {
-        st
-      }
-    },
-  )
+pub fn else_to_vote(vote: fn(ScriptContext) -> Bool) {
+  fn(r: Data, v: Voter, t: Transaction) -> Bool {
+    vote(ScriptContext(t, r, Voting(v)))
+  }
 }
 
 fn vote_handlers(
