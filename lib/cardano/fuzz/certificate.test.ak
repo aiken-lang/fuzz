@@ -7,7 +7,8 @@ use cardano/certificate.{
   RetireFromConstitutionalCommittee, RetireStakePool, UnregisterCredential,
   UnregisterDelegateRepresentative, UpdateDelegateRepresentative,
 }
-use cardano/gen_certificate.{any_certificate, any_delegate, any_drep}
+use cardano/fuzz/certificate.{any_certificate,
+  any_delegate, any_drep} as fuzz_cert
 
 test prop_any_certificate(c via any_certificate()) {
   label(

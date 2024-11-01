@@ -12,8 +12,8 @@ use cardano/assets.{
   AssetName, Lovelace, PolicyId, Value, ada_asset_name, ada_policy_id,
 }
 use cardano/certificate.{Certificate}
-use cardano/gen_address.{any_address, any_credential}
-use cardano/gen_assets.{any_constrained_value, any_value}
+use cardano/fuzz/address.{any_address, any_credential} as fuzz_address
+use cardano/fuzz/assets.{any_constrained_value, any_value} as fuzz_assets
 use cardano/transaction.{
   Datum, DatumHash, InlineDatum, Input, NoDatum, Output, OutputReference,
   Transaction,

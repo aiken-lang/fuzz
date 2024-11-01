@@ -2,10 +2,10 @@ use aiken/collection/dict
 use aiken/collection/list
 use aiken/fuzz.{and_then, int_at_least, int_between, list_between, map}
 use cardano/assets.{AssetName, PolicyId, Value}
-use cardano/gen_assets.{
+use cardano/fuzz/assets.{
   any_asset_name, any_constrained_value, any_policy_id, any_value,
   any_value_extending, any_value_with,
-}
+} as fuzz_assets
 
 fn help_prop_any_value_with() -> Fuzzer<(assets.PolicyId, assets.Value)> {
   let policy <- and_then(any_policy_id())
