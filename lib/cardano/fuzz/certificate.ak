@@ -10,7 +10,7 @@ use cardano/certificate.{
   RetireFromConstitutionalCommittee, RetireStakePool, UnregisterCredential,
   UnregisterDelegateRepresentative, UpdateDelegateRepresentative,
 }
-use cardano/gen_address.{any_credential}
+use cardano/fuzz/address.{any_credential}
 
 pub fn any_certificate() -> Fuzzer<Certificate> {
   let choice <- and_then(int_between(0, 10))

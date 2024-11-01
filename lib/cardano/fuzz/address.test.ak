@@ -1,6 +1,6 @@
 use aiken/fuzz.{label}
 use cardano/address.{Address, Inline, Script, VerificationKey}
-use cardano/gen_address.{any_address, any_credential}
+use cardano/fuzz/address.{any_address, any_credential} as fuzz_address
 
 test prop_any_credential(c via any_credential()) {
   label(
