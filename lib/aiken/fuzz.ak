@@ -1391,7 +1391,7 @@ pub fn scaled_set(scaled_fuzzer: ScaledFuzzer<a>) -> ScaledFuzzer<List<a>> {
   fn(prng, complexity) {
     // Scale the maximum list length based on complexity
     let max_len = 20 * complexity
-    list_between(from_scaled_fuzzer(scaled_fuzzer), complexity, max_len)(prng)
+    list_between(from_scaled_fuzzer(scaled_fuzzer, None), complexity, max_len)(prng)
   }
 }
 
@@ -1474,7 +1474,7 @@ pub fn scaled_list_between(scaled_fuzzer: ScaledFuzzer<a>, min: Int, max: Int) -
   fn(s0, complexity) {
     // Scale max by complexity while preserving minimum
     let scaled_max = max * complexity
-    list_between(from_scaled_fuzzer(scaled_fuzzer), min, scaled_max)(s0)
+    list_between(from_scaled_fuzzer(scaled_fuzzer, None), min, scaled_max)(s0)
   }
 }
 
@@ -1484,20 +1484,15 @@ pub fn scaled_either3(
   b: ScaledFuzzer<result>,
   c: ScaledFuzzer<result>,
 ) -> ScaledFuzzer<result> {
-  let ix <- scaled_and_then(to_scaled_fuzzer(byte()))
   fn(s0, complexity) {
-    when ix(s0) is {
-      Some((s1, n)) ->
-        if n < 85 {
-          a(s1, complexity)
-        } else if n < 170 {
-          b(s1, complexity)
+        if complexity < 85 {
+          a(s0, complexity)
+        } else if complexity < 170 {
+          b(s0, complexity)
         } else {
-          c(s1, complexity)
+          c(s0, complexity)
         }
-      None -> None
     }
-  }
 }
 
 /// Generate a value that satisfies a predicate, with complexity-aware retries
