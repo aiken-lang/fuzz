@@ -1037,14 +1037,14 @@ pub fn option(fuzz_a: Fuzzer<a>) -> Fuzzer<Option<a>> {
       )
 }
 
-/// Take a random sublist from an existing list.
-pub fn sublist(xs: List<a>) -> Fuzzer<List<a>> {
+/// Take a random subset from an existing list.
+pub fn subset(xs: List<a>) -> Fuzzer<List<a>> {
   let threshold <- and_then(rand)
   when xs is {
     [] -> constant([])
     [head, ..tail] -> {
       let n <- and_then(rand)
-      let rest <- map(sublist(tail))
+      let rest <- map(subset(tail))
       if n < threshold {
         [head, ..rest]
       } else {
@@ -1056,7 +1056,7 @@ pub fn sublist(xs: List<a>) -> Fuzzer<List<a>> {
 
 /// Take a random subset from an existing set.
 pub fn subset(xs: List<a>) -> Fuzzer<List<a>> {
-  sublist(xs)
+  subset(xs)
 }
 
 /// Generate a value that satisfies a given predicate. Beware that this
@@ -1345,4 +1345,190 @@ test prop_u16(operands via both(rand, rand)) {
         |> builtin.cons_bytearray(lsb, _),
     )
   u16(msb, lsb) == n
+}
+
+/// Convert a regular Fuzzer to a ScaledFuzzer by ignoring the complexity parameter
+pub fn to_scaled_fuzzer(fuzzer: Fuzzer<a>) -> ScaledFuzzer<a> {
+  fn(prng, _complexity) { fuzzer(prng) }
+}
+
+/// Convert a ScaledFuzzer to a regular Fuzzer by using a default complexity of 1
+/// User can also specify a constant complexity
+pub fn from_scaled_fuzzer(scaled_fuzzer: ScaledFuzzer<a>, complexity: Option<Int>) -> Fuzzer<a> {
+  when complexity is {
+    Some(complexity) -> fn(prng) { scaled_fuzzer(prng, complexity) }
+    None -> fn(prng) { scaled_fuzzer(prng, 1) }
+  }
+}
+
+/// Create a constant ScaledFuzzer from an arbitrary value
+pub fn scaled_constant(a: a) -> ScaledFuzzer<a> {
+  fn(s0, _complexity) { Some((s0, a)) }
+}
+
+/// Transform the result of a ScaledFuzzer using a function
+pub fn scaled_map(scaled_fuzz_a: ScaledFuzzer<a>, f: fn(a) -> b) -> ScaledFuzzer<b> {
+  fn(s0, complexity) {
+    when scaled_fuzz_a(s0, complexity) is {
+      Some((s1, a)) -> Some((s1, f(a)))
+      None -> None
+    }
+  }
+}
+
+/// Combine a ScaledFuzzer with the result of another one
+pub fn scaled_and_then(scaled_fuzz_a: ScaledFuzzer<a>, f: fn(a) -> ScaledFuzzer<b>) -> ScaledFuzzer<b> {
+  fn(s0, complexity) {
+    when scaled_fuzz_a(s0, complexity) is {
+      Some((s1, a)) -> f(a)(s1, complexity)
+      None -> None
+    }
+  }
+}
+
+/// Generate a random list using a ScaledFuzzer, with length scaled by complexity
+pub fn scaled_set(scaled_fuzzer: ScaledFuzzer<a>) -> ScaledFuzzer<List<a>> {
+  fn(prng, complexity) {
+    // Scale the maximum list length based on complexity
+    let max_len = 20 * complexity
+    list_between(from_scaled_fuzzer(scaled_fuzzer), complexity, max_len)(prng)
+  }
+}
+
+/// Generate integers with magnitude scaled by complexity
+pub fn scaled_int() -> ScaledFuzzer<Int> {
+  fn(prng, complexity) {
+    // Scale the range based on complexity
+    let range = 255 * complexity
+    int_between(-range, range)(prng)
+  }
+}
+
+/// Combine two ScaledFuzzers into a 2-tuple
+pub fn scaled_both(left: ScaledFuzzer<a>, right: ScaledFuzzer<b>) -> ScaledFuzzer<(a, b)> {
+  fn(s0, complexity) {
+    when left(s0, complexity) is {
+      Some((s1, a)) ->
+        when right(s1, complexity) is {
+          Some((s2, b)) -> Some((s2, (a, b)))
+          None -> None
+        }
+      None -> None
+    }
+  }
+}
+
+/// Choose either of two ScaledFuzzers with equal probability
+pub fn scaled_either(left: ScaledFuzzer<a>, right: ScaledFuzzer<a>) -> ScaledFuzzer<a> {
+  let pick_left <- scaled_and_then(to_scaled_fuzzer(bool()))
+  if pick_left {
+    left
+  } else {
+    right
+  }
+}
+
+/// Choose between None or Some value with equal probability for ScaledFuzzers
+pub fn scaled_option(scaled_fuzz_a: ScaledFuzzer<a>) -> ScaledFuzzer<Option<a>> {
+  to_scaled_fuzzer(bool())
+    |> scaled_and_then(
+        fn(predicate) {
+          if predicate {
+            scaled_fuzz_a |> scaled_map(Some)
+          } else {
+            scaled_constant(None)
+          }
+        },
+      )
+}
+
+/// Generate a random ByteArray with size scaled by complexity
+pub fn scaled_bytearray() -> ScaledFuzzer<ByteArray> {
+  fn(prng, complexity) {
+    // Scale the size based on complexity
+    let size = 32 * complexity
+    bytearray_fixed(size)(prng)
+  }
+}
+
+/// Combine the results of two ScaledFuzzers
+pub fn scaled_map2(
+  scaled_fuzz_0: ScaledFuzzer<t0>,
+  scaled_fuzz_1: ScaledFuzzer<t1>,
+  f: fn(t0, t1) -> result,
+) -> ScaledFuzzer<result> {
+  fn(s0, complexity) {
+    when scaled_fuzz_0(s0, complexity) is {
+      Some((s1, t0)) ->
+        when scaled_fuzz_1(s1, complexity) is {
+          Some((s2, t1)) -> Some((s2, f(t0, t1)))
+          None -> None
+        }
+      None -> None
+    }
+  }
+}
+
+/// Generate a random list of elements with length within specified bounds, scaled by complexity
+pub fn scaled_list_between(scaled_fuzzer: ScaledFuzzer<a>, min: Int, max: Int) -> ScaledFuzzer<List<a>> {
+  fn(s0, complexity) {
+    // Scale max by complexity while preserving minimum
+    let scaled_max = max * complexity
+    list_between(from_scaled_fuzzer(scaled_fuzzer), min, scaled_max)(s0)
+  }
+}
+
+/// Choose between three ScaledFuzzers with equal probability
+pub fn scaled_either3(
+  a: ScaledFuzzer<result>,
+  b: ScaledFuzzer<result>,
+  c: ScaledFuzzer<result>,
+) -> ScaledFuzzer<result> {
+  let ix <- scaled_and_then(to_scaled_fuzzer(byte()))
+  fn(s0, complexity) {
+    when ix(s0) is {
+      Some((s1, n)) ->
+        if n < 85 {
+          a(s1, complexity)
+        } else if n < 170 {
+          b(s1, complexity)
+        } else {
+          c(s1, complexity)
+        }
+      None -> None
+    }
+  }
+}
+
+/// Generate a value that satisfies a predicate, with complexity-aware retries
+pub fn scaled_such_that(
+  scaled_fuzzer: ScaledFuzzer<a>,
+  predicate: fn(a) -> Bool,
+) -> ScaledFuzzer<a> {
+  fn(s0, complexity) {
+    // Scale max tries with complexity
+    do_scaled_such_that(scaled_fuzzer, predicate, 100 * complexity, s0, complexity)
+  }
+}
+
+fn do_scaled_such_that(
+  scaled_fuzzer: ScaledFuzzer<a>,
+  predicate: fn(a) -> Bool,
+  max_tries: Int,
+  s0: PRNG,
+  complexity: Int,
+) -> Option<(PRNG, a)> {
+  if max_tries <= 0 {
+    fail @"scaled_such_that: couldn't satisfy predicate after maximum attempts"
+  } else {
+    when scaled_fuzzer(s0, complexity) is {
+      Some((s1, x)) ->
+        if predicate(x) {
+          Some((s1, x))
+        } else {
+          do_scaled_such_that(scaled_fuzzer, predicate, max_tries - 1, s1, complexity)
+        }
+      None -> None
+    }
+  }
 }
