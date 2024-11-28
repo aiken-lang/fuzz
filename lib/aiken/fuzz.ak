@@ -1038,7 +1038,7 @@ pub fn option(fuzz_a: Fuzzer<a>) -> Fuzzer<Option<a>> {
 }
 
 /// Take a random subset from an existing list.
-pub fn subset(xs: List<a>) -> Fuzzer<List<a>> {
+pub fn sublist(xs: List<a>) -> Fuzzer<List<a>> {
   let threshold <- and_then(rand)
   when xs is {
     [] -> constant([])
