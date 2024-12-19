@@ -112,7 +112,7 @@ pub fn assets(self: Value, policy_id: PolicyId) -> Fuzzer<Value> {
 
 /// Generate a `Value` holding a **positive** quantity of lovelace, but no assets.
 pub fn lovelace() -> Fuzzer<Value> {
-  map(int_at_least(1), assets.from_lovelace)
+  map(int_at_least(1000000), assets.from_lovelace)
 }
 
 /// Generate an arbitrary policy is (a.k.a script hash).

@@ -7,9 +7,9 @@ use cardano/certificate.{
   RetireFromConstitutionalCommittee, RetireStakePool, UnregisterCredential,
   UnregisterDelegateRepresentative, UpdateDelegateRepresentative,
 }
-use cardano/fuzz.{certificate, delegate, delegate_representative} as fuzz_cert
+use cardano/fuzz.{delegate, delegate_representative} as fuzz_cert
 
-test prop_certificate(c via certificate()) {
+test prop_certificate(c via fuzz_cert.certificate()) {
   label(
     when c is {
       RegisterCredential(_, _) -> @"RegisterCredential"

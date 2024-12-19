@@ -1,26 +1,22 @@
-use aiken/collection/dict
 use aiken/collection/list
-use aiken/crypto.{ScriptHash, VerificationKeyHash}
+use aiken/crypto.{VerificationKeyHash}
 use aiken/fuzz.{
-  and_then, bytearray_between, constant, int, int_between, list_between, map,
-  map2, map7, option,
+  map,
+  map7,
 }
-use aiken/interval
 use cardano/address.{Credential}
-use cardano/address/credential
 use cardano/assets.{
-  AssetName, Lovelace, PolicyId, Value, ada_asset_name, ada_policy_id,
+  Lovelace, Value, ada_asset_name, ada_policy_id,
 }
 use cardano/certificate.{Certificate}
 use cardano/fuzz as cardano
 use cardano/transaction.{
-  Datum, DatumHash, InlineDatum, Input, NoDatum, Output, OutputReference,
-  Transaction,
+  Input, Output,
+  Transaction, ScriptPurpose, Redeemer,
 }
 
 // > [!IMPORTANT]
 // The following fields on the transaction are not handled within our library.
-// redeemers: Pairs<ScriptPurpose, Redeemer>,
 // datums: Dict<DataHash, Data>,
 // id: TransactionId,
 // votes: Pairs<Voter, Pairs<GovernanceActionId, Vote>>,
@@ -138,6 +134,16 @@ pub fn add_fuzz_signers(
         extra_signatories: list.concat(s, self.extra_signatories),
       }
     },
+  )
+}
+
+pub fn add_fuzz_redeemers(
+  self: Transaction,
+  redeemers: Fuzzer<Pairs<ScriptPurpose, Redeemer>>,
+) -> Fuzzer<Transaction> {
+  map(
+    redeemers,
+    fn(r) { Transaction { ..self, redeemers: list.concat(r, self.redeemers) } },
   )
 }
 

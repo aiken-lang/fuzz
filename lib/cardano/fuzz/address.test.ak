@@ -11,7 +11,7 @@ test prop_credential(credential via cardano.credential()) {
   )
 }
 
-test prop_address(a via address()) {
+test prop_address(a via cardano.address()) {
   label(
     when a is {
       Address { payment_credential: VerificationKey(_), stake_credential: None } ->
