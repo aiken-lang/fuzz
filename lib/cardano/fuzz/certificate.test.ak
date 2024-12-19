@@ -7,10 +7,9 @@ use cardano/certificate.{
   RetireFromConstitutionalCommittee, RetireStakePool, UnregisterCredential,
   UnregisterDelegateRepresentative, UpdateDelegateRepresentative,
 }
-use cardano/fuzz/certificate.{any_certificate,
-  any_delegate, any_drep} as fuzz_cert
+use cardano/fuzz.{certificate, delegate, delegate_representative} as fuzz_cert
 
-test prop_any_certificate(c via any_certificate()) {
+test prop_certificate(c via certificate()) {
   label(
     when c is {
       RegisterCredential(_, _) -> @"RegisterCredential"
@@ -29,11 +28,10 @@ test prop_any_certificate(c via any_certificate()) {
         @"RetireFromConstitutionalCommittee"
     },
   )
-  True
 }
 
-/// Test for any_delegate generator
-test prop_any_delegate(d via any_delegate()) {
+/// Test for delegate generator
+test prop_delegate(d via delegate()) {
   label(
     when d is {
       DelegateBlockProduction(_) -> @"DelegateBlockProduction"
@@ -41,17 +39,15 @@ test prop_any_delegate(d via any_delegate()) {
       DelegateBoth(_, _) -> @"DelegateBoth"
     },
   )
-  True
 }
 
-/// Test for any_drep (DelegateRepresentative) generator
-test prop_any_drep(drep via any_drep()) {
+/// Test for delegate_representative (DelegateRepresentative) generator
+test prop_delegate_representative(d via delegate_representative()) {
   label(
-    when drep is {
+    when d is {
       Registered(_) -> @"Registered"
       AlwaysAbstain -> @"AlwaysAbstain"
       AlwaysNoConfidence -> @"AlwaysNoConfidence"
     },
   )
-  True
 }

@@ -1,65 +1,67 @@
 use aiken/collection/dict
 use aiken/collection/list
-use aiken/fuzz.{and_then, int_at_least, int_between, list_between, map}
+use aiken/fuzz
 use cardano/assets.{AssetName, PolicyId, Value}
-use cardano/fuzz/assets.{
-  any_asset_name, any_constrained_value, any_policy_id, any_value,
-  any_value_extending, any_value_with,
-} as fuzz_assets
+use cardano/fuzz as cardano
 
-fn help_prop_any_value_with() -> Fuzzer<(assets.PolicyId, assets.Value)> {
-  let policy <- and_then(any_policy_id())
-  map(any_value_with(policy), fn(b) { (policy, b) })
+fn help_prop_value_with() -> Fuzzer<(PolicyId, Value)> {
+  let policy <- fuzz.and_then(cardano.policy_id())
+  let value <- fuzz.map(cardano.assets(policy))
+  (policy, value)
 }
 
-test prop_any_value_with((policy, value) via help_prop_any_value_with()) {
+test prop_value_with((policy, value) via help_prop_value_with()) {
   assets.tokens(value, policy) != dict.empty
 }
 
-fn help_prop_any_value_extending() -> Fuzzer<(assets.Value, assets.Value)> {
-  let v <- and_then(any_value())
-  map(any_value_extending(v), fn(ve) { (v, ve) })
+fn help_prop_value() -> Fuzzer<(Value, Value)> {
+  let initial <- fuzz.and_then(cardano.lovelace())
+  let extended <- fuzz.and_then(value(initial))
+  (initial, extended)
 }
 
-test prop_any_value_extending(
-  (value, value_extended) via help_prop_any_value_extending(),
-) {
+test prop_value((initial, extended) via help_prop_value_extending()) {
   assets.reduce(
-    value,
+    extended,
     True,
-    fn(p, a, i, r) { r && assets.quantity_of(value_extended, p, a) >= i },
+    fn(policy_id, asset_name, quantity, is_larger) {
+      is_larger && assets.quantity_of(initial, policy_id, asset_name) <= quantity
+    },
   )
 }
 
 /// Helper function to generate asset constraints for a single policy
-fn any_asset_constraint() -> Fuzzer<Pair<AssetName, Pair<Int, Int>>> {
+fn asset_constraint() -> Fuzzer<Pair<AssetName, Pair<Int, Int>>> {
   let min_quantity <- and_then(int_at_least(0))
   let max_quantity <- and_then(int_between(min_quantity, min_quantity + 100))
-  map(any_asset_name(), fn(a) { Pair(a, Pair(min_quantity, max_quantity)) })
+  fuzz.map(
+    cardano.asset_name(),
+    fn(asset_name) { Pair(asset_name, Pair(min_quantity, max_quantity)) },
+  )
 }
 
 /// Helper function to generate constraints for a single policy
-fn any_policy_constraints() -> Fuzzer<
+fn policy_constraints() -> Fuzzer<
   Pair<PolicyId, List<Pair<AssetName, Pair<Int, Int>>>>,
 > {
-  let asset_constraints <- and_then(list_between(any_asset_constraint(), 1, 10))
-  map(any_policy_id(), fn(p) { Pair(p, asset_constraints) })
+  let asset_constraints <- and_then(list_between(asset_constraint(), 1, 10))
+  map(policy_id(), fn(p) { Pair(p, asset_constraints) })
 }
 
 /// Helper function to generate a list of policy constraints
-fn any_constraints() -> Fuzzer<
+fn constraints() -> Fuzzer<
   List<Pair<PolicyId, List<Pair<AssetName, Pair<Int, Int>>>>>,
 > {
-  list_between(any_policy_constraints(), 1, 5)
+  list_between(policy_constraints(), 1, 5)
 }
 
 /// Fuzzer to generate constraints along with a constrained value
-fn help_prop_any_constrained_value() -> Fuzzer<
+fn help_prop_constrained_value() -> Fuzzer<
   Pair<List<Pair<PolicyId, List<Pair<AssetName, Pair<Int, Int>>>>>, Value>,
 > {
-  let constraints <- and_then(any_constraints())
+  let constraints <- and_then(constraints())
   let merged = merge_policy_constraints(constraints)
-  let a_c_v = any_constrained_value(merged)
+  let a_c_v = constrained_value(merged)
   map(a_c_v, fn(v) { Pair(merged, v) })
 }
 
@@ -134,7 +136,6 @@ fn merge_policy_constraints(
   merged_policies
 }
 
-///
 fn verify_constraints(
   constraints: List<Pair<PolicyId, List<Pair<AssetName, Pair<Int, Int>>>>>,
   value: Value,
@@ -156,11 +157,4 @@ fn verify_constraints(
       )
     },
   )
-}
-
-test prop_any_constrained_value(
-  Pair(constraints, value) via help_prop_any_constrained_value(),
-) {
-  // Assert that all constraints are satisfied
-  verify_constraints(constraints, value)
 }

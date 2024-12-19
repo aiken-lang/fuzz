@@ -12,8 +12,7 @@ use cardano/assets.{
   AssetName, Lovelace, PolicyId, Value, ada_asset_name, ada_policy_id,
 }
 use cardano/certificate.{Certificate}
-use cardano/fuzz/address.{any_address, any_credential} as fuzz_address
-use cardano/fuzz/assets.{any_constrained_value, any_value} as fuzz_assets
+use cardano/fuzz as cardano
 use cardano/transaction.{
   Datum, DatumHash, InlineDatum, Input, NoDatum, Output, OutputReference,
   Transaction,
@@ -28,152 +27,6 @@ use cardano/transaction.{
 // proposal_procedures: List<ProposalProcedure>,
 // current_treasury_amount: Option<Lovelace>,
 // treasury_donation: Option<Lovelace>,
-
-pub fn any_datum() -> Fuzzer<Datum> {
-  let variant <- and_then(int_between(0, 2))
-  when variant is {
-    0 -> constant(NoDatum)
-    1 -> {
-      let hash <- map(bytearray_between(32, 32))
-      DatumHash(hash)
-    }
-    2 -> {
-      let i <- map(int())
-      InlineDatum(i)
-    }
-    _ -> fail @"unexpected datum variant"
-  }
-}
-
-pub fn any_reference_script() -> Fuzzer<Option<ScriptHash>> {
-  option(bytearray_between(28, 28))
-}
-
-pub fn any_output() -> Fuzzer<Output> {
-  let address <- and_then(any_address())
-  let value <- and_then(any_value())
-  let datum <- and_then(any_datum())
-  let reference_script <- map(any_reference_script())
-  Output { address, value, datum, reference_script }
-}
-
-pub fn any_zero_output() -> Fuzzer<Output> {
-  let address <- and_then(any_address())
-  let datum <- and_then(any_datum())
-  let reference_script <- map(any_reference_script())
-  Output { address, value: assets.zero, datum, reference_script }
-}
-
-// The any_constrained_output function remains the same
-pub fn any_constrained_output(
-  constraints: List<Pair<PolicyId, List<Pair<AssetName, Pair<Int, Int>>>>>,
-  datum: Fuzzer<Datum>,
-) -> Fuzzer<Output> {
-  let address <- and_then(any_address())
-  let value <- and_then(any_constrained_value(constraints))
-  let datum <- and_then(datum)
-  let reference_script <- map(any_reference_script())
-  Output { address, value, datum, reference_script }
-}
-
-pub fn any_constrained_outputs(
-  constraints: List<Pair<PolicyId, List<Pair<AssetName, Pair<Int, Int>>>>>,
-  datum: Fuzzer<Datum>,
-  min_outs: Int,
-  max_outs: Int,
-) -> Fuzzer<List<Output>> {
-  let non_normalized <-
-    and_then(list_between(int_between(1, 100), min_outs, max_outs))
-  let sum_nn = list.foldr(non_normalized, 0, fn(e, acc) { acc + e })
-  let normalized = list.map(non_normalized, fn(e) { 100 * e / sum_nn })
-  list.foldr(
-    normalized,
-    constant([]),
-    fn(e, acc) {
-      let sub_constraints =
-        list.map(
-          constraints,
-          fn(constraint) {
-            let Pair(policy_id, asset_constraints) = constraint
-            let updated_asset_constraints =
-              list.map(
-                asset_constraints,
-                fn(asset_constraint) {
-                  let Pair(asset_name, Pair(min, max)) = asset_constraint
-                  let sub_min = min * e / 100
-                  let sub_max = max * e / 100
-                  Pair(asset_name, Pair(sub_min, sub_max))
-                },
-              )
-            Pair(policy_id, updated_asset_constraints)
-          },
-        )
-      map2(
-        any_constrained_output(sub_constraints, datum),
-        acc,
-        fn(no, a) { [no, ..a] },
-      )
-    },
-  )
-}
-
-pub fn any_output_reference() -> Fuzzer<OutputReference> {
-  let transaction_id <- and_then(bytearray_between(32, 32))
-  let output_index <- map(int_between(0, 300))
-  OutputReference { transaction_id, output_index }
-}
-
-pub fn any_input() -> Fuzzer<Input> {
-  let output_reference <- and_then(any_output_reference())
-  let output <- map(any_output())
-  Input { output_reference, output }
-}
-
-pub fn any_constrained_input(
-  constraints: List<Pair<PolicyId, List<Pair<AssetName, Pair<Int, Int>>>>>,
-  datum: Fuzzer<Datum>,
-) -> Fuzzer<Input> {
-  let output_reference <- and_then(any_output_reference())
-  let output <- map(any_constrained_output(constraints, datum))
-  Input { output_reference, output }
-}
-
-/// Generate Withdrawals
-pub fn any_withdrawals() -> Fuzzer<Pairs<Credential, Lovelace>> {
-  map(
-    list_between(
-      map2(
-        any_credential(),
-        int_between(0, 200000000000),
-        fn(c, i) {
-          let l: Lovelace = i
-          Pair(c, l)
-        },
-      ),
-      0,
-      5,
-    ),
-    fn(l) {
-      let ps: Pairs<Credential, Lovelace> =
-        list.sort(l, fn(e1, e2) { credential.compare(e1.1st, e2.1st) })
-      ps
-    },
-  )
-}
-
-pub fn any_withdrawals_extending(
-  with: Pairs<Credential, Lovelace>,
-) -> Fuzzer<Pairs<Credential, Lovelace>> {
-  map(
-    any_withdrawals(),
-    fn(w) {
-      list.sort(
-        list.concat(w, with),
-        fn(e1, e2) { credential.compare(e1.1st, e2.1st) },
-      )
-    },
-  )
-}
 
 // Transaction stuffz
 
@@ -288,31 +141,12 @@ pub fn add_fuzz_signers(
   )
 }
 
-pub fn base_tx() -> Transaction {
-  Transaction(
-    [],
-    [],
-    [],
-    0,
-    assets.zero,
-    [],
-    [],
-    interval.empty,
-    [],
-    [],
-    dict.empty,
-    #"",
-    [],
-    [],
-    None,
-    None,
-  )
-}
-
-pub fn any_generic_tx() -> Fuzzer<Transaction> {
-  let tx = base_tx()
-  let tx <- fuzz.and_then(add_fuzz_inputs(tx, fuzz.list(any_input())))
-  add_fuzz_outputs(tx, fuzz.list(any_output()))
+pub fn generic_tx() -> Fuzzer<Transaction> {
+  let tx <-
+    fuzz.and_then(
+      add_fuzz_inputs(transaction.placeholder, fuzz.list(cardano.input())),
+    )
+  add_fuzz_outputs(tx, fuzz.list(cardano.output()))
 }
 
 // TODO - Rewrite this handling separate parts of the tx separately.
@@ -376,13 +210,13 @@ pub fn balance_tx(self: Transaction) -> Fuzzer<Transaction> {
     )
       |> assets.add(ada_policy_id, ada_asset_name, 1)
   map7(
-    any_output_reference(),
-    any_address(),
-    any_address(),
-    any_datum(),
-    any_datum(),
-    any_reference_script(),
-    any_reference_script(),
+    cardano.output_reference(),
+    cardano.address(),
+    cardano.address(),
+    cardano.datum(),
+    cardano.datum(),
+    cardano.reference_script(),
+    cardano.reference_script(),
     fn(o_ref, a1, a2, d1, d2, r1, r2) {
       let new_input = Input(o_ref, Output(a1, added_input_value, d1, r1))
       let new_output = Output(a2, added_output_value, d2, r2)

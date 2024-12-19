@@ -1,18 +1,17 @@
 use aiken/fuzz.{label}
 use cardano/address.{Address, Inline, Script, VerificationKey}
-use cardano/fuzz/address.{any_address, any_credential} as fuzz_address
+use cardano/fuzz as cardano
 
-test prop_any_credential(c via any_credential()) {
+test prop_credential(credential via cardano.credential()) {
   label(
-    when c is {
+    when credential is {
       Script(_) -> @"Script"
       VerificationKey(_) -> @"VerificationKey"
     },
   )
-  True
 }
 
-test prop_any_address(a via any_address()) {
+test prop_address(a via address()) {
   label(
     when a is {
       Address { payment_credential: VerificationKey(_), stake_credential: None } ->
@@ -35,8 +34,7 @@ test prop_any_address(a via any_address()) {
         payment_credential: Script(_),
         stake_credential: Some(Inline(Script(_))),
       } -> @"Script_InlineScript"
-      _ -> fail @"Unexpected Address from any_address"
+      _ -> fail @"Unexpected Address from address"
     },
   )
-  True
 }
