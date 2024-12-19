@@ -1,19 +1,11 @@
 use aiken/collection/list
 use aiken/crypto.{VerificationKeyHash}
-use aiken/fuzz.{
-  map,
-  map7,
-}
+use aiken/fuzz.{map, map7}
 use cardano/address.{Credential}
-use cardano/assets.{
-  Lovelace, Value, ada_asset_name, ada_policy_id,
-}
+use cardano/assets.{Lovelace, Value, ada_asset_name, ada_policy_id}
 use cardano/certificate.{Certificate}
 use cardano/fuzz as cardano
-use cardano/transaction.{
-  Input, Output,
-  Transaction, ScriptPurpose, Redeemer,
-}
+use cardano/transaction.{Input, Output, Redeemer, ScriptPurpose, Transaction}
 
 // > [!IMPORTANT]
 // The following fields on the transaction are not handled within our library.
