@@ -1,8 +1,10 @@
 use aiken/collection/list
 use aiken/fuzz.{
-  and_then, bool, constant, either3, either4, either5, either6, either7, either8,
-  either9, int, int_between, label, list_between, list_with_elem, map, one_of,
-  set, set_between, sublist, such_that,
+  and_then, bool, byte, bytearray, constant, either3, either4, either5, either6,
+  either7, either8, either9, int, int_between, label, list_between,
+  list_with_elem, map, map2, map3, map4, map5, map6, map7, map8, map9, one_of,
+  set, set_between, sublist, such_that, tuple, tuple3, tuple4, tuple5, tuple6,
+  tuple7, tuple8, tuple9,
 }
 use aiken/math
 use aiken/primitive/bytearray
@@ -318,4 +320,319 @@ fn buckets(n, start, end, increment) -> Void {
   } else {
     buckets(n, next, end, increment)
   }
+}
+
+// ## Tuple Fuzzer Tests
+
+fn data_fuzzer() -> Fuzzer<Data> {
+  let bool <- and_then(bool())
+  let byte <- and_then(byte())
+  let bytearray <- and_then(bytearray())
+  let int <- and_then(int())
+
+  let bool_data: Data = bool
+  let byte_data: Data = byte
+  let bytearray_data: Data = bytearray
+  let int_data: Data = int
+
+  either4(
+    constant(bool_data),
+    constant(byte_data),
+    constant(bytearray_data),
+    constant(int_data),
+  )
+}
+
+fn prop_tuple2() -> Fuzzer<Bool> {
+  let a <- and_then(data_fuzzer())
+  let b <- and_then(data_fuzzer())
+
+  let fuzzer_a = a |> constant
+  let fuzzer_b = b |> constant
+
+  let l_tuple <- and_then(tuple(fuzzer_a, fuzzer_b))
+  let r_tuple <- and_then(map2(fuzzer_a, fuzzer_b, fn(a, b) { (a, b) }))
+
+  constant(l_tuple == r_tuple)
+}
+
+fn prop_tuple3() -> Fuzzer<Bool> {
+  let a <- and_then(data_fuzzer())
+  let b <- and_then(data_fuzzer())
+  let c <- and_then(data_fuzzer())
+
+  let fuzzer_a = a |> constant
+  let fuzzer_b = b |> constant
+  let fuzzer_c = c |> constant
+
+  let l_tuple <- and_then(tuple3(fuzzer_a, fuzzer_b, fuzzer_c))
+  let r_tuple <-
+    and_then(map3(fuzzer_a, fuzzer_b, fuzzer_c, fn(a, b, c) { (a, b, c) }))
+
+  constant(l_tuple == r_tuple)
+}
+
+fn prop_tuple4() -> Fuzzer<Bool> {
+  let a <- and_then(data_fuzzer())
+  let b <- and_then(data_fuzzer())
+  let c <- and_then(data_fuzzer())
+  let d <- and_then(data_fuzzer())
+
+  let fuzzer_a = a |> constant
+  let fuzzer_b = b |> constant
+  let fuzzer_c = c |> constant
+  let fuzzer_d = d |> constant
+
+  let l_tuple <- and_then(tuple4(fuzzer_a, fuzzer_b, fuzzer_c, fuzzer_d))
+  let r_tuple <-
+    and_then(
+      map4(
+        fuzzer_a,
+        fuzzer_b,
+        fuzzer_c,
+        fuzzer_d,
+        fn(a, b, c, d) { (a, b, c, d) },
+      ),
+    )
+
+  constant(l_tuple == r_tuple)
+}
+
+fn prop_tuple5() -> Fuzzer<Bool> {
+  let a <- and_then(data_fuzzer())
+  let b <- and_then(data_fuzzer())
+  let c <- and_then(data_fuzzer())
+  let d <- and_then(data_fuzzer())
+  let e <- and_then(data_fuzzer())
+
+  let fuzzer_a = a |> constant
+  let fuzzer_b = b |> constant
+  let fuzzer_c = c |> constant
+  let fuzzer_d = d |> constant
+  let fuzzer_e = e |> constant
+
+  let l_tuple <-
+    and_then(tuple5(fuzzer_a, fuzzer_b, fuzzer_c, fuzzer_d, fuzzer_e))
+  let r_tuple <-
+    and_then(
+      map5(
+        fuzzer_a,
+        fuzzer_b,
+        fuzzer_c,
+        fuzzer_d,
+        fuzzer_e,
+        fn(a, b, c, d, e) { (a, b, c, d, e) },
+      ),
+    )
+
+  constant(l_tuple == r_tuple)
+}
+
+fn prop_tuple6() -> Fuzzer<Bool> {
+  let a <- and_then(data_fuzzer())
+  let b <- and_then(data_fuzzer())
+  let c <- and_then(data_fuzzer())
+  let d <- and_then(data_fuzzer())
+  let e <- and_then(data_fuzzer())
+  let f <- and_then(data_fuzzer())
+
+  let fuzzer_a = a |> constant
+  let fuzzer_b = b |> constant
+  let fuzzer_c = c |> constant
+  let fuzzer_d = d |> constant
+  let fuzzer_e = e |> constant
+  let fuzzer_f = f |> constant
+
+  let l_tuple <-
+    and_then(tuple6(fuzzer_a, fuzzer_b, fuzzer_c, fuzzer_d, fuzzer_e, fuzzer_f))
+  let r_tuple <-
+    and_then(
+      map6(
+        fuzzer_a,
+        fuzzer_b,
+        fuzzer_c,
+        fuzzer_d,
+        fuzzer_e,
+        fuzzer_f,
+        fn(a, b, c, d, e, f) { (a, b, c, d, e, f) },
+      ),
+    )
+
+  constant(l_tuple == r_tuple)
+}
+
+fn prop_tuple7() -> Fuzzer<Bool> {
+  let a <- and_then(data_fuzzer())
+  let b <- and_then(data_fuzzer())
+  let c <- and_then(data_fuzzer())
+  let d <- and_then(data_fuzzer())
+  let e <- and_then(data_fuzzer())
+  let f <- and_then(data_fuzzer())
+  let g <- and_then(data_fuzzer())
+
+  let fuzzer_a = a |> constant
+  let fuzzer_b = b |> constant
+  let fuzzer_c = c |> constant
+  let fuzzer_d = d |> constant
+  let fuzzer_e = e |> constant
+  let fuzzer_f = f |> constant
+  let fuzzer_g = g |> constant
+
+  let l_tuple <-
+    and_then(
+      tuple7(
+        fuzzer_a,
+        fuzzer_b,
+        fuzzer_c,
+        fuzzer_d,
+        fuzzer_e,
+        fuzzer_f,
+        fuzzer_g,
+      ),
+    )
+  let r_tuple <-
+    and_then(
+      map7(
+        fuzzer_a,
+        fuzzer_b,
+        fuzzer_c,
+        fuzzer_d,
+        fuzzer_e,
+        fuzzer_f,
+        fuzzer_g,
+        fn(a, b, c, d, e, f, g) { (a, b, c, d, e, f, g) },
+      ),
+    )
+
+  constant(l_tuple == r_tuple)
+}
+
+fn prop_tuple8() -> Fuzzer<Bool> {
+  let a <- and_then(data_fuzzer())
+  let b <- and_then(data_fuzzer())
+  let c <- and_then(data_fuzzer())
+  let d <- and_then(data_fuzzer())
+  let e <- and_then(data_fuzzer())
+  let f <- and_then(data_fuzzer())
+  let g <- and_then(data_fuzzer())
+  let h <- and_then(data_fuzzer())
+
+  let fuzzer_a = a |> constant
+  let fuzzer_b = b |> constant
+  let fuzzer_c = c |> constant
+  let fuzzer_d = d |> constant
+  let fuzzer_e = e |> constant
+  let fuzzer_f = f |> constant
+  let fuzzer_g = g |> constant
+  let fuzzer_h = h |> constant
+
+  let l_tuple <-
+    and_then(
+      tuple8(
+        fuzzer_a,
+        fuzzer_b,
+        fuzzer_c,
+        fuzzer_d,
+        fuzzer_e,
+        fuzzer_f,
+        fuzzer_g,
+        fuzzer_h,
+      ),
+    )
+  let r_tuple <-
+    and_then(
+      map8(
+        fuzzer_a,
+        fuzzer_b,
+        fuzzer_c,
+        fuzzer_d,
+        fuzzer_e,
+        fuzzer_f,
+        fuzzer_g,
+        fuzzer_h,
+        fn(a, b, c, d, e, f, g, h) { (a, b, c, d, e, f, g, h) },
+      ),
+    )
+
+  constant(l_tuple == r_tuple)
+}
+
+fn prop_tuple9() -> Fuzzer<Bool> {
+  let a <- and_then(data_fuzzer())
+  let b <- and_then(data_fuzzer())
+  let c <- and_then(data_fuzzer())
+  let d <- and_then(data_fuzzer())
+  let e <- and_then(data_fuzzer())
+  let f <- and_then(data_fuzzer())
+  let g <- and_then(data_fuzzer())
+  let h <- and_then(data_fuzzer())
+  let i <- and_then(data_fuzzer())
+
+  let fuzzer_a = a |> constant
+  let fuzzer_b = b |> constant
+  let fuzzer_c = c |> constant
+  let fuzzer_d = d |> constant
+  let fuzzer_e = e |> constant
+  let fuzzer_f = f |> constant
+  let fuzzer_g = g |> constant
+  let fuzzer_h = h |> constant
+  let fuzzer_i = i |> constant
+
+  let l_tuple <-
+    and_then(
+      tuple9(
+        fuzzer_a,
+        fuzzer_b,
+        fuzzer_c,
+        fuzzer_d,
+        fuzzer_e,
+        fuzzer_f,
+        fuzzer_g,
+        fuzzer_h,
+        fuzzer_i,
+      ),
+    )
+  let r_tuple <-
+    and_then(
+      map9(
+        fuzzer_a,
+        fuzzer_b,
+        fuzzer_c,
+        fuzzer_d,
+        fuzzer_e,
+        fuzzer_f,
+        fuzzer_g,
+        fuzzer_h,
+        fuzzer_i,
+        fn(a, b, c, d, e, f, g, h, i) { (a, b, c, d, e, f, g, h, i) },
+      ),
+    )
+
+  constant(l_tuple == r_tuple)
+}
+
+fn prop_tuple2_to_tuple9() -> Fuzzer<Bool> {
+  let tuple2_map2 <- and_then(prop_tuple2())
+  let tuple3_map3 <- and_then(prop_tuple3())
+  let tuple4_map4 <- and_then(prop_tuple4())
+  let tuple5_map5 <- and_then(prop_tuple5())
+  let tuple6_map6 <- and_then(prop_tuple6())
+  let tuple7_map7 <- and_then(prop_tuple7())
+  let tuple8_map8 <- and_then(prop_tuple8())
+  let tuple9_map9 <- and_then(prop_tuple9())
+
+  constant(and {
+      tuple2_map2,
+      tuple3_map3,
+      tuple4_map4,
+      tuple5_map5,
+      tuple6_map6,
+      tuple7_map7,
+      tuple8_map8,
+      tuple9_map9,
+    })
+}
+
+test prop_tuples(match via prop_tuple2_to_tuple9()) {
+  match
 }
