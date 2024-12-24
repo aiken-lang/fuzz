@@ -325,21 +325,27 @@ fn buckets(n, start, end, increment) -> Void {
 // ## Tuple Fuzzer Tests
 
 fn data_fuzzer() -> Fuzzer<Data> {
-  let bool <- and_then(bool())
-  let byte <- and_then(byte())
-  let bytearray <- and_then(bytearray())
-  let int <- and_then(int())
-
-  let bool_data: Data = bool
-  let byte_data: Data = byte
-  let bytearray_data: Data = bytearray
-  let int_data: Data = int
-
   either4(
-    constant(bool_data),
-    constant(byte_data),
-    constant(bytearray_data),
-    constant(int_data),
+    {
+      let bool <- map(bool())
+      let data: Data = bool
+      data
+    },
+    {
+      let byte <- map(byte())
+      let data: Data = byte
+      data
+    },
+    {
+      let bytearray <- map(bytearray())
+      let data: Data = bytearray
+      data
+    },
+    {
+      let int <- map(int())
+      let data: Data = int
+      data
+    },
   )
 }
 
