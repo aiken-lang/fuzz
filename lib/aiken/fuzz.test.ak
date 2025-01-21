@@ -642,3 +642,10 @@ fn prop_tuple2_to_tuple9() -> Fuzzer<Bool> {
 test prop_tuples(match via prop_tuple2_to_tuple9()) {
   match
 }
+
+test property_test(vs via fuzz.list_between(fuzz.constant(Void), 5, 10)) fail {
+  // DO NOT MODIFY BELOW //
+  let len = vs |> list.length
+  len < 5
+  // DO NOT MODIFY ABOVE //
+}
