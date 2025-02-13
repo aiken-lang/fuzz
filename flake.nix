@@ -1,12 +1,12 @@
 {
-  description = "Kompact project";
+  description = "Aiken fuzz library";
 
   inputs = {
-    flake-parts.url = "github:hercules-ci/flake-parts";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    pre-commit-hooks-nix.url = "github:hercules-ci/pre-commit-hooks.nix/flakeModule";
-    pre-commit-hooks-nix.inputs.nixpkgs.follows = "nixpkgs";
-    aiken.url = "github:aiken-lang/aiken";
+    aiken.url = "github:waalge/aiken/waalge/fix-nix-build";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    git-hooks-nix.url = "github:cachix/git-hooks.nix";
+    git-hooks-nix.inputs.nixpkgs.follows = "nixpkgs";
     treefmt-nix.url = "github:numtide/treefmt-nix";
   };
 
@@ -14,7 +14,7 @@
     flake-parts.lib.mkFlake { inherit inputs; }
       {
         imports = [
-          inputs.pre-commit-hooks-nix.flakeModule
+          inputs.git-hooks-nix.flakeModule
           inputs.treefmt-nix.flakeModule
         ];
         systems = [ "x86_64-linux" "aarch64-darwin" ];
@@ -28,6 +28,16 @@
               };
             };
           };
+        pre-commit.settings.hooks = {
+          treefmt.enable = true;
+          aiken = {
+            enable = true;
+            name = "aiken";
+            description = "Run aiken's formatter on ./aik";
+            files = "\\.ak";
+            entry = "${inputs'.aiken.packages.aiken}/bin/aiken fmt ./aik";
+          };
+        };
 
           devShells.default =
           pkgs.mkShell {
@@ -38,7 +48,7 @@
             shellHook = ''
               echo 1>&2 "Welcome to the development shell!"
             '';
-            name = "hello-aiken";
+            name = "dev";
             packages = [
               inputs'.aiken.packages.aiken
             ];
