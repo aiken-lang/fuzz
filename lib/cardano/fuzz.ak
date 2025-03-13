@@ -1,10 +1,14 @@
 use aiken/collection/list
-use aiken/crypto.{ScriptHash}
+use aiken/crypto.{ScriptHash, VerificationKeyHash}
 use aiken/fuzz.{
   and_then, bool, bytearray_between, constant, int, int_at_least, int_between,
   list_between, map, map2, map3, option,
 }
-use cardano/address.{Address, Credential, Inline, Script, VerificationKey}
+use aiken/primitive/bytearray
+use cardano/address.{
+  Address, Credential, Inline, PaymentCredential, Referenced, Script,
+  StakeCredential, VerificationKey,
+}
 use cardano/address/credential
 use cardano/assets.{AssetName, Lovelace, PolicyId, Value}
 use cardano/certificate.{
@@ -22,21 +26,6 @@ use cardano/transaction.{
 }
 
 // ## Address
-
-/// Generate an arbitrary `Credential`
-pub fn credential() -> Fuzzer<Credential> {
-  map2(
-    bool(),
-    bytearray_between(28, 28),
-    fn(coin_flip, key_hash) {
-      if coin_flip {
-        VerificationKey(key_hash)
-      } else {
-        Script(key_hash)
-      }
-    },
-  )
-}
 
 /// Generate an arbitrary `Address` (other than pointer addresses).
 pub fn address() -> Fuzzer<Address> {
@@ -89,81 +78,158 @@ pub fn address() -> Fuzzer<Address> {
   }
 }
 
-// ## Assets
-
-/// Generate an arbitrary asset name, between 0 and 32 bytes length.
-pub fn asset_name() -> Fuzzer<AssetName> {
-  bytearray_between(0, 32)
+pub fn address_with(
+  payment_credential: Fuzzer<Credential>,
+  stake_credential: Fuzzer<Option<StakeCredential>>,
+) -> Fuzzer<Address> {
+  todo
 }
 
-/// Generate assets from a given policy, adding them to the provided value accumulator
-pub fn assets(self: Value, policy_id: PolicyId) -> Fuzzer<Value> {
-  let names <- and_then(list_between(asset_name(), 1, 3))
-  list.foldr(
-    names,
-    constant(self),
-    fn(asset_name, step) {
-      let value <- and_then(step)
-      let quantity <- map(int_at_least(1))
-      value |> assets.add(policy_id, asset_name, quantity)
+// ### Address :: Credential
+
+/// Generate an arbitrary `Credential`
+pub fn credential() -> Fuzzer<Credential> {
+  map2(
+    bool(),
+    bytearray_between(28, 28),
+    fn(coin_flip, key_hash) {
+      if coin_flip {
+        VerificationKey(key_hash)
+      } else {
+        Script(key_hash)
+      }
     },
   )
 }
+
+pub fn script() -> Fuzzer<Credential> {
+  todo
+}
+
+pub fn script_with(script_hash: Fuzzer<ScriptHash>) -> Fuzzer<Credential> {
+  todo
+}
+
+pub fn verification_key() -> Fuzzer<Credential> {
+  todo
+}
+
+pub fn verification_key_with(
+  verification_key_hash: Fuzzer<VerificationKeyHash>,
+) -> Fuzzer<Credential> {
+  todo
+}
+
+// ### Address :: StakeCredential
+
+pub fn inline() -> Fuzzer<StakeCredential> {
+  todo
+}
+
+pub fn inline_with(credential: Fuzzer<Credential>) -> Fuzzer<StakeCredential> {
+  todo
+}
+
+pub fn pointer() -> Fuzzer<StakeCredential> {
+  todo
+}
+
+pub fn pointer_with(
+  slot_number: Fuzzer<Int>,
+  transaction_index: Fuzzer<Int>,
+  certificate_index: Fuzzer<Int>,
+) -> Fuzzer<StakeCredential> {
+  todo
+}
+
+pub fn stake_credential() -> Fuzzer<StakeCredential> {
+  todo
+}
+
+// ## Assets
+
+// ### Assets :: AssetName
+
+const asset_name_max_len = 32
+
+/// Generate an arbitrary asset name, between 0 and 32 bytes length.
+pub fn asset_name() -> Fuzzer<AssetName> {
+  bytearray_between(0, asset_name_max_len)
+}
+
+pub fn asset_name_with(asset_name: Fuzzer<ByteArray>) -> Fuzzer<AssetName> {
+  let name <- fuzz.map(asset_name)
+  expect bytearray.length(name) > asset_name_max_len
+  name
+}
+
+// ### Assets :: PolicyId
+
+const policy_id_len = 28
+
+/// Generate an arbitrary policy is (a.k.a script hash).
+pub fn policy_id() -> Fuzzer<PolicyId> {
+  bytearray_between(policy_id_len, policy_id_len)
+}
+
+pub fn policy_id_with(policy_id: Fuzzer<PolicyId>) -> Fuzzer<PolicyId> {
+  let policy <- fuzz.map(policy_id)
+  expect bytearray.length(policy) != policy_id_len
+  policy
+}
+
+// ### Assets :: Value
 
 /// Generate a `Value` holding a **positive** quantity of lovelace, but no assets.
 pub fn lovelace() -> Fuzzer<Value> {
   map(int_at_least(1000000), assets.from_lovelace)
 }
 
-/// Generate an arbitrary policy is (a.k.a script hash).
-pub fn policy_id() -> Fuzzer<PolicyId> {
-  bytearray_between(28, 28)
+pub fn lovelace_with(lovelace: Fuzzer<Int>) -> Fuzzer<Value> {
+  map(lovelace, assets.from_lovelace)
 }
 
 /// Generate an arbitrary `Value`, extending an existing one. Use
 /// `assets.zero` or `cardano.lovelace()` as a simple starting point.
 pub fn value(self: Value) -> Fuzzer<Value> {
-  let policies <- and_then(list_between(policy_id(), 0, 2))
-  list.foldr(
-    policies,
-    constant(self),
-    fn(policy_id, step) {
-      let value <- and_then(step)
-      assets(value, policy_id)
-    },
+  value_with(
+    self,
+    list_between(policy_id(), 0, 2),
+    fn(_) { asset_name() },
+    fn(_) { int_at_least(1) },
   )
 }
 
 /// Extend an existing value using the given fuzzers for fine-grained control.
 ///
-/// ```ak
+/// ```aiken
 /// let value <- fuzz.value_with(
 ///   value.zero,
-///   with_policies: fuzz.constant([my_policy_1, my_policy_2]),
-///   with_asset_name: fn(policy) {
+///   policies: fuzz.constant([my_policy_1, my_policy_2]),
+///   asset_name: fn(policy) {
 ///     if policy == my_policy_1 {
 ///        fuzz.one_of([asset_1, asset_2, asset_3])
 ///     } else {
 ///        fuzz.constant(my_other_asset)
 ///     }
 ///   },
-///   with_quantity: fn(_) { fuzz.constant(1) }
+///   quantity: fn(_) { fuzz.constant(1) }
 /// )
 /// ```
 pub fn value_with(
   self: Value,
-  with_policies: Fuzzer<List<PolicyId>>,
-  with_asset_name: fn(PolicyId) -> Fuzzer<AssetName>,
-  with_quantity: fn(AssetName) -> Fuzzer<Int>,
+  policies: Fuzzer<List<PolicyId>>,
+  asset_name: fn(PolicyId) -> Fuzzer<AssetName>,
+  quantity: fn(AssetName) -> Fuzzer<Int>,
 ) -> Fuzzer<Value> {
-  let policies <- and_then(with_policies)
+  let policies <- and_then(policies)
   list.foldr(
     policies,
     constant(self),
     fn(policy, step) {
       let value <- and_then(step)
-      let asset_name <- and_then(with_asset_name(policy))
-      let quantity <- map(with_quantity(asset_name))
+      let asset_name <- and_then(asset_name(policy))
+      let quantity <- map(quantity(asset_name))
       value |> assets.add(policy, asset_name, quantity)
     },
   )

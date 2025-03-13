@@ -5,7 +5,15 @@ use cardano/fuzz as cardano
 
 fn help_prop_value_with() -> Fuzzer<(PolicyId, Value)> {
   let policy <- fuzz.and_then(cardano.policy_id())
-  let value <- fuzz.map(cardano.assets(assets.from_lovelace(1000000), policy))
+  let value <-
+    fuzz.map(
+      cardano.value_with(
+        assets.from_lovelace(1000000),
+        fuzz.constant([policy]),
+        fn(_) { cardano.asset_name() },
+        fn(_) { fuzz.int_at_least(1) },
+      ),
+    )
   (policy, value)
 }
 
