@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.2.0 - UNRELEASED
+
+### Added
+
+- Transaction specific functionality:
+    - Assets / Value Fuzzers
+    - Certificate Fuzzers
+    - Credential and Address Fuzzers
+    - Transaction Fuzzer helpers
+
 ## v2.1.0 - 2024-09-24
 
 ### Added
