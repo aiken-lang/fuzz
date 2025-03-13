@@ -22,15 +22,15 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: aiken-lang/setup-aiken@v1
         with:
-          version: v1.1.9
+          version: v1.1.13
       - run: aiken fmt --check
       - run: aiken check -D
       - run: aiken build
       - run: aiken docs -o docs
-      - uses: actions/upload-pages-artifact@v2
+      - uses: actions/upload-pages-artifact@v4
         with:
           path: "docs/"
 
@@ -46,4 +46,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v1
+        uses: actions/deploy-pages@v4
