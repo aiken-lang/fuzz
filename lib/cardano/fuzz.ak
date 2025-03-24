@@ -6,8 +6,7 @@ use aiken/fuzz.{
 }
 use aiken/primitive/bytearray
 use cardano/address.{
-  Address, Credential, Inline, PaymentCredential, Referenced, Script,
-  StakeCredential, VerificationKey,
+  Address, Credential, Inline, Pointer, Script, StakeCredential, VerificationKey,
 }
 use cardano/address/credential
 use cardano/assets.{AssetName, Lovelace, PolicyId, Value}
@@ -82,7 +81,13 @@ pub fn address_with(
   payment_credential: Fuzzer<Credential>,
   stake_credential: Fuzzer<Option<StakeCredential>>,
 ) -> Fuzzer<Address> {
-  todo
+  map2(
+    payment_credential,
+    stake_credential,
+    fn(payment_credential, stake_credential) {
+      Address { payment_credential, stake_credential }
+    },
+  )
 }
 
 // ### Address :: Credential
@@ -103,35 +108,42 @@ pub fn credential() -> Fuzzer<Credential> {
 }
 
 pub fn script() -> Fuzzer<Credential> {
-  todo
+  map(bytearray_between(28, 28), fn(hash) { Script(hash) })
 }
 
 pub fn script_with(script_hash: Fuzzer<ScriptHash>) -> Fuzzer<Credential> {
-  todo
+  map(script_hash, fn(hash) { Script(hash) })
 }
 
 pub fn verification_key() -> Fuzzer<Credential> {
-  todo
+  map(bytearray_between(28, 28), fn(hash) { VerificationKey(hash) })
 }
 
 pub fn verification_key_with(
   verification_key_hash: Fuzzer<VerificationKeyHash>,
 ) -> Fuzzer<Credential> {
-  todo
+  map(verification_key_hash, fn(hash) { VerificationKey(hash) })
 }
 
 // ### Address :: StakeCredential
 
 pub fn inline() -> Fuzzer<StakeCredential> {
-  todo
+  map(credential(), fn(credential) { Inline(credential) })
 }
 
 pub fn inline_with(credential: Fuzzer<Credential>) -> Fuzzer<StakeCredential> {
-  todo
+  map(credential, fn(credential) { Inline(credential) })
 }
 
 pub fn pointer() -> Fuzzer<StakeCredential> {
-  todo
+  map3(
+    int(),
+    int(),
+    int(),
+    fn(slot_number, transaction_index, certificate_index) {
+      Pointer(slot_number, transaction_index, certificate_index)
+    },
+  )
 }
 
 pub fn pointer_with(
@@ -139,11 +151,29 @@ pub fn pointer_with(
   transaction_index: Fuzzer<Int>,
   certificate_index: Fuzzer<Int>,
 ) -> Fuzzer<StakeCredential> {
-  todo
+  map3(
+    slot_number,
+    transaction_index,
+    certificate_index,
+    fn(slot_number, transaction_index, certificate_index) {
+      Pointer(slot_number, transaction_index, certificate_index)
+    },
+  )
 }
 
 pub fn stake_credential() -> Fuzzer<StakeCredential> {
-  todo
+  let inline <- and_then(inline())
+  let pointer <- and_then(pointer())
+  map(
+    bool(),
+    fn(bool) {
+      if bool {
+        inline
+      } else {
+        pointer
+      }
+    },
+  )
 }
 
 // ## Assets
@@ -235,7 +265,7 @@ pub fn value_with(
   )
 }
 
-// ## Certificates
+// ## Certificate
 
 pub fn certificate() -> Fuzzer<Certificate> {
   let choice <- and_then(int_between(0, 10))
@@ -255,6 +285,130 @@ pub fn certificate() -> Fuzzer<Certificate> {
   }
 }
 
+pub fn register_credential() -> Fuzzer<Certificate> {
+  map(credential(), fn(credential) { RegisterCredential(credential, Never) })
+}
+
+pub fn register_credential_with(
+  credential: Fuzzer<Credential>,
+) -> Fuzzer<Certificate> {
+  map(credential, fn(credential) { RegisterCredential(credential, Never) })
+}
+
+pub fn unregister_credential() -> Fuzzer<Certificate> {
+  map(credential(), fn(credential) { UnregisterCredential(credential, Never) })
+}
+
+pub fn unregister_credential_with(
+  credential: Fuzzer<Credential>,
+) -> Fuzzer<Certificate> {
+  map(credential, fn(credential) { UnregisterCredential(credential, Never) })
+}
+
+pub fn delegate_credential() -> Fuzzer<Certificate> {
+  map2(credential(), delegate(), DelegateCredential)
+}
+
+pub fn delegate_credential_with(
+  credential: Fuzzer<Credential>,
+  delegate: Fuzzer<Delegate>,
+) -> Fuzzer<Certificate> {
+  map2(credential, delegate, DelegateCredential)
+}
+
+pub fn register_and_delegate_credential() -> Fuzzer<Certificate> {
+  map3(credential(), delegate(), int(), RegisterAndDelegateCredential)
+}
+
+pub fn register_and_delegate_credential_with(
+  credential: Fuzzer<Credential>,
+  delegate: Fuzzer<Delegate>,
+  deposit: Fuzzer<Lovelace>,
+) -> Fuzzer<Certificate> {
+  map3(credential, delegate, deposit, RegisterAndDelegateCredential)
+}
+
+pub fn register_delegate_representative() -> Fuzzer<Certificate> {
+  map2(credential(), int(), RegisterDelegateRepresentative)
+}
+
+pub fn register_delegate_representative_with(
+  credential: Fuzzer<Credential>,
+  deposit: Fuzzer<Lovelace>,
+) -> Fuzzer<Certificate> {
+  map2(credential, deposit, RegisterDelegateRepresentative)
+}
+
+pub fn update_delegate_representative() -> Fuzzer<Certificate> {
+  map(credential(), UpdateDelegateRepresentative)
+}
+
+pub fn update_delegate_representative_with(
+  credential: Fuzzer<Credential>,
+) -> Fuzzer<Certificate> {
+  map(credential, UpdateDelegateRepresentative)
+}
+
+pub fn unregister_delegate_representative() -> Fuzzer<Certificate> {
+  map2(credential(), int(), UnregisterDelegateRepresentative)
+}
+
+pub fn unregister_delegate_representative_with(
+  credential: Fuzzer<Credential>,
+  deposit: Fuzzer<Lovelace>,
+) -> Fuzzer<Certificate> {
+  map2(credential, deposit, UnregisterDelegateRepresentative)
+}
+
+pub fn register_stake_pool() -> Fuzzer<Certificate> {
+  map2(stake_pool_id(), bytearray_between(28, 28), RegisterStakePool)
+}
+
+pub fn register_stake_pool_with(
+  stake_pool_id: Fuzzer<StakePoolId>,
+  verification_key_hash: Fuzzer<VerificationKeyHash>,
+) -> Fuzzer<Certificate> {
+  map2(stake_pool_id, verification_key_hash, RegisterStakePool)
+}
+
+pub fn retire_stake_pool() -> Fuzzer<Certificate> {
+  map2(stake_pool_id(), int(), RetireStakePool)
+}
+
+pub fn retire_stake_pool_with(
+  stake_pool_id: Fuzzer<StakePoolId>,
+  deposit: Fuzzer<Lovelace>,
+) -> Fuzzer<Certificate> {
+  map2(stake_pool_id, deposit, RetireStakePool)
+}
+
+pub fn authorize_constitutional_committee_proxy() -> Fuzzer<Certificate> {
+  map2(credential(), credential(), AuthorizeConstitutionalCommitteeProxy)
+}
+
+pub fn authorize_constitutional_committee_proxy_with(
+  constitutional_committee_member: Fuzzer<Credential>,
+  proxy: Fuzzer<Credential>,
+) -> Fuzzer<Certificate> {
+  map2(
+    constitutional_committee_member,
+    proxy,
+    AuthorizeConstitutionalCommitteeProxy,
+  )
+}
+
+pub fn retire_from_constitutional_committee() -> Fuzzer<Certificate> {
+  map(credential(), RetireFromConstitutionalCommittee)
+}
+
+pub fn retire_from_constitutional_committee_with(
+  constitutional_committee_member: Fuzzer<Credential>,
+) -> Fuzzer<Certificate> {
+  map(constitutional_committee_member, RetireFromConstitutionalCommittee)
+}
+
+// ### Certificate :: Delegate
+
 pub fn delegate() -> Fuzzer<Delegate> {
   let choice <- and_then(int_between(0, 2))
   when choice is {
@@ -264,6 +418,39 @@ pub fn delegate() -> Fuzzer<Delegate> {
     _ -> fail
   }
 }
+
+pub fn delegate_block_production() -> Fuzzer<Delegate> {
+  map(stake_pool_id(), DelegateBlockProduction)
+}
+
+pub fn delegate_block_production_with(
+  stake_pool_id: Fuzzer<StakePoolId>,
+) -> Fuzzer<Delegate> {
+  map(stake_pool_id, DelegateBlockProduction)
+}
+
+pub fn delegate_vote() -> Fuzzer<Delegate> {
+  map(delegate_representative(), DelegateVote)
+}
+
+pub fn delegate_vote_with(
+  delegate_representative: Fuzzer<DelegateRepresentative>,
+) -> Fuzzer<Delegate> {
+  map(delegate_representative, DelegateVote)
+}
+
+pub fn delegate_both() -> Fuzzer<Delegate> {
+  map2(stake_pool_id(), delegate_representative(), DelegateBoth)
+}
+
+pub fn delegate_both_with(
+  stake_pool_id: Fuzzer<StakePoolId>,
+  delegate_representative: Fuzzer<DelegateRepresentative>,
+) -> Fuzzer<Delegate> {
+  map2(stake_pool_id, delegate_representative, DelegateBoth)
+}
+
+// ### Certificate :: Delegate Representative
 
 pub fn delegate_representative() -> Fuzzer<DelegateRepresentative> {
   let choice <- and_then(int_between(0, 2))
@@ -275,54 +462,36 @@ pub fn delegate_representative() -> Fuzzer<DelegateRepresentative> {
   }
 }
 
+pub fn registered() -> Fuzzer<DelegateRepresentative> {
+  map(credential(), Registered)
+}
+
+pub fn registered_with(
+  credential: Fuzzer<Credential>,
+) -> Fuzzer<DelegateRepresentative> {
+  map(credential, Registered)
+}
+
+pub fn always_abstain() -> Fuzzer<DelegateRepresentative> {
+  constant(AlwaysAbstain)
+}
+
+pub fn always_no_confidence() -> Fuzzer<DelegateRepresentative> {
+  constant(AlwaysNoConfidence)
+}
+
+// ### Stake Pool Ids
+
 pub fn stake_pool_id() -> Fuzzer<StakePoolId> {
-  bytearray_between(32, 32)
+  bytearray_between(28, 28)
 }
 
-// ### Fine-grained
-
-pub fn register_credential() -> Fuzzer<Certificate> {
-  map(credential(), fn(credential) { RegisterCredential(credential, Never) })
-}
-
-pub fn unregister_credential() -> Fuzzer<Certificate> {
-  map(credential(), fn(credential) { UnregisterCredential(credential, Never) })
-}
-
-pub fn delegate_credential() -> Fuzzer<Certificate> {
-  map2(credential(), delegate(), DelegateCredential)
-}
-
-pub fn register_and_delegate_credential() -> Fuzzer<Certificate> {
-  map3(credential(), delegate(), int(), RegisterAndDelegateCredential)
-}
-
-pub fn register_delegate_representative() -> Fuzzer<Certificate> {
-  map2(credential(), int(), RegisterDelegateRepresentative)
-}
-
-pub fn update_delegate_representative() -> Fuzzer<Certificate> {
-  map(credential(), UpdateDelegateRepresentative)
-}
-
-pub fn unregister_delegate_representative() -> Fuzzer<Certificate> {
-  map2(credential(), int(), UnregisterDelegateRepresentative)
-}
-
-pub fn register_stake_pool() -> Fuzzer<Certificate> {
-  map2(stake_pool_id(), bytearray_between(32, 32), RegisterStakePool)
-}
-
-pub fn retire_stake_pool() -> Fuzzer<Certificate> {
-  map2(stake_pool_id(), int(), RetireStakePool)
-}
-
-pub fn authorize_constitutional_committee_proxy() -> Fuzzer<Certificate> {
-  map2(credential(), credential(), AuthorizeConstitutionalCommitteeProxy)
-}
-
-pub fn retire_from_constitutional_committee() -> Fuzzer<Certificate> {
-  map(credential(), RetireFromConstitutionalCommittee)
+pub fn stake_pool_id_with(
+  stake_pool_id: Fuzzer<ByteArray>,
+) -> Fuzzer<StakePoolId> {
+  // TODO: Verify that the stake_pool_id is exactly 28 bytes.
+  // This will help ensure validity of transactions created with this fuzzer.
+  stake_pool_id
 }
 
 // ## Transaction
