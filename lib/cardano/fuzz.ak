@@ -112,7 +112,16 @@ pub fn script() -> Fuzzer<Credential> {
 }
 
 pub fn script_with(script_hash: Fuzzer<ScriptHash>) -> Fuzzer<Credential> {
-  map(script_hash, fn(hash) { Script(hash) })
+  map(
+    script_hash,
+    fn(hash) {
+      if bytearray.length(hash) == 28 {
+        Script(hash)
+      } else {
+        fail
+      }
+    },
+  )
 }
 
 pub fn verification_key() -> Fuzzer<Credential> {
@@ -122,7 +131,16 @@ pub fn verification_key() -> Fuzzer<Credential> {
 pub fn verification_key_with(
   verification_key_hash: Fuzzer<VerificationKeyHash>,
 ) -> Fuzzer<Credential> {
-  map(verification_key_hash, fn(hash) { VerificationKey(hash) })
+  map(
+    verification_key_hash,
+    fn(hash) {
+      if bytearray.length(hash) == 28 {
+        VerificationKey(hash)
+      } else {
+        fail
+      }
+    },
+  )
 }
 
 // ### Address :: StakeCredential
@@ -368,7 +386,17 @@ pub fn register_stake_pool_with(
   stake_pool_id: Fuzzer<StakePoolId>,
   verification_key_hash: Fuzzer<VerificationKeyHash>,
 ) -> Fuzzer<Certificate> {
-  map2(stake_pool_id, verification_key_hash, RegisterStakePool)
+  map2(
+    stake_pool_id,
+    verification_key_hash,
+    fn(s, v) {
+      if bytearray.length(s) == 28 && bytearray.length(v) == 28 {
+        RegisterStakePool(s, v)
+      } else {
+        fail
+      }
+    },
+  )
 }
 
 pub fn retire_stake_pool() -> Fuzzer<Certificate> {
@@ -412,9 +440,9 @@ pub fn retire_from_constitutional_committee_with(
 pub fn delegate() -> Fuzzer<Delegate> {
   let choice <- and_then(int_between(0, 2))
   when choice is {
-    0 -> map(stake_pool_id(), DelegateBlockProduction)
-    1 -> map(delegate_representative(), DelegateVote)
-    2 -> map2(stake_pool_id(), delegate_representative(), DelegateBoth)
+    0 -> delegate_block_production()
+    1 -> delegate_vote()
+    2 -> delegate_both()
     _ -> fail
   }
 }
@@ -455,9 +483,9 @@ pub fn delegate_both_with(
 pub fn delegate_representative() -> Fuzzer<DelegateRepresentative> {
   let choice <- and_then(int_between(0, 2))
   when choice is {
-    0 -> map(credential(), Registered)
-    1 -> constant(AlwaysAbstain)
-    2 -> constant(AlwaysNoConfidence)
+    0 -> registered()
+    1 -> always_abstain()
+    2 -> always_no_confidence()
     _ -> fail
   }
 }
@@ -489,9 +517,16 @@ pub fn stake_pool_id() -> Fuzzer<StakePoolId> {
 pub fn stake_pool_id_with(
   stake_pool_id: Fuzzer<ByteArray>,
 ) -> Fuzzer<StakePoolId> {
-  // TODO: Verify that the stake_pool_id is exactly 28 bytes.
-  // This will help ensure validity of transactions created with this fuzzer.
-  stake_pool_id
+  map(
+    stake_pool_id,
+    fn(stake_pool_id) {
+      if bytearray.length(stake_pool_id) == 28 {
+        stake_pool_id
+      } else {
+        fail @"Stake Pool Ids must be 28 bytes"
+      }
+    },
+  )
 }
 
 // ## Transaction
