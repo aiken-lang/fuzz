@@ -1,6 +1,7 @@
 use aiken/builtin
 use aiken/collection/list
 use aiken/math
+use aiken/math/rational.{Rational, new, reduce}
 use aiken/option
 
 // ## Constructing
@@ -239,6 +240,137 @@ pub fn int_at_most(max: Int) -> Fuzzer<Int> {
     int_between(-max_rand, max)
   } else {
     int_between(max - 5 * abs, max)
+  }
+}
+
+/// Generates a random rational value within the range `[-255, 16383]`,
+/// following the specified distribution:
+/// [-255,-101]   0.1%
+/// [-100,-1]    23.3%
+/// [0, 100]     68.8%
+/// [101,255]     4.9%
+/// >255          3.0%
+pub fn rational() -> Fuzzer<Rational> {
+  map(
+    both(int(), int_at_least(1)),
+    fn((numerator, denominator)) {
+      expect Some(fraction) = new(numerator, denominator)
+      fraction
+    },
+  )
+}
+
+/// Generates rational values between a lower and upper bound (both inclusive), with the following distribution:
+/// [-255, -101]  31.1%
+/// [-100, -1]    19.2%
+/// [0, 100]      19.6%
+/// [101, 255]    30.1%
+///
+/// The upper and lower bounds must be between -255 and 255.
+pub fn rational_between(
+  lower_bound: Rational,
+  upper_bound: Rational,
+) -> Fuzzer<Rational> {
+  expect correct_bounds(lower_bound, upper_bound)
+
+  if lower_bound == upper_bound {
+    lower_bound |> rational.reduce |> constant
+  } else if rational.compare(lower_bound, upper_bound) == Greater {
+    rational_between(upper_bound, lower_bound)
+  } else {
+    let denominator <-
+      and_then(
+        int_at_least(
+          math.max(
+            rational.denominator(lower_bound),
+            rational.denominator(upper_bound),
+          ) + 1,
+        ),
+      )
+
+    let min_numerator =
+      binary_search_min_numerator(
+        lower_bound,
+        denominator,
+        -255 * denominator,
+        255 * denominator,
+      )
+    let max_numerator =
+      binary_search_max_numerator(
+        upper_bound,
+        denominator,
+        -255 * denominator,
+        255 * denominator,
+      )
+    map(
+      int_between(min_numerator, max_numerator),
+      fn(numerator) {
+        expect Some(fraction) = new(numerator, denominator)
+        reduce(fraction)
+      },
+    )
+  }
+}
+
+/// Generates a random rational value that is at least `optional_min`.
+/// The lower bound must be between -255 and 255.
+pub fn rational_at_least(lower_bound: Rational) -> Fuzzer<Rational> {
+  expect Some(upper_bound) = new(255, 1)
+  rational_between(lower_bound, upper_bound)
+}
+
+/// Generates a random rational value that is at most `opt_max`.
+/// The upper bound must be between -255 and 255.
+pub fn rational_at_most(upper_bound: Rational) {
+  expect Some(lower_bound) = new(-255, 1)
+  rational_between(lower_bound, upper_bound)
+}
+
+fn correct_bounds(min_fraction: Rational, max_fraction: Rational) {
+  expect Some(lower_bound) = new(-256, 1)
+  expect Some(upper_bound) = new(256, 1)
+
+  and {
+    rational.compare(min_fraction, lower_bound) == Greater,
+    rational.compare(min_fraction, upper_bound) == Less,
+    rational.compare(max_fraction, lower_bound) == Greater,
+    rational.compare(max_fraction, upper_bound) == Less,
+  }
+}
+
+fn binary_search_min_numerator(
+  min_fraction: Rational,
+  denominator: Int,
+  low: Int,
+  high: Int,
+) -> Int {
+  let mid_point = ( low + high ) / 2
+  expect Some(mid_fraction) = new(mid_point, denominator)
+
+  if low > high {
+    low
+  } else if rational.compare(mid_fraction, min_fraction) == Less {
+    binary_search_min_numerator(min_fraction, denominator, mid_point + 1, high)
+  } else {
+    binary_search_min_numerator(min_fraction, denominator, low, mid_point - 1)
+  }
+}
+
+fn binary_search_max_numerator(
+  max_fraction: Rational,
+  denominator: Int,
+  low: Int,
+  high: Int,
+) -> Int {
+  let mid_point = ( low + high ) / 2
+  expect Some(mid_fraction) = new(mid_point, denominator)
+
+  if low > high {
+    high
+  } else if rational.compare(mid_fraction, max_fraction) == Greater {
+    binary_search_max_numerator(max_fraction, denominator, low, mid_point - 1)
+  } else {
+    binary_search_max_numerator(max_fraction, denominator, mid_point + 1, high)
   }
 }
 
