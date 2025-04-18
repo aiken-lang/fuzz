@@ -1,53 +1,49 @@
 use aiken/fuzz.{label}
-use cardano/certificate.{
-  AlwaysAbstain, AlwaysNoConfidence, AuthorizeConstitutionalCommitteeProxy,
-  DelegateBlockProduction, DelegateBoth, DelegateCredential, DelegateVote,
-  RegisterAndDelegateCredential, RegisterCredential,
-  RegisterDelegateRepresentative, RegisterStakePool, Registered,
-  RetireFromConstitutionalCommittee, RetireStakePool, UnregisterCredential,
-  UnregisterDelegateRepresentative, UpdateDelegateRepresentative,
-}
+use cardano/certificate.{Certificate, Delegate, DelegateRepresentative}
 use cardano/fuzz.{delegate, delegate_representative} as fuzz_cert
 
-test prop_certificate(c via fuzz_cert.certificate()) {
+test prop_certificate(cert via fuzz_cert.certificate()) {
   label(
-    when c is {
-      RegisterCredential(_, _) -> @"RegisterCredential"
-      UnregisterCredential(_, _) -> @"UnregisterCredential"
-      DelegateCredential(_, _) -> @"DelegateCredential"
-      RegisterAndDelegateCredential(_, _, _) -> @"RegisterAndDelegateCredential"
-      RegisterDelegateRepresentative(_, _) -> @"RegisterDelegateRepresentative"
-      UpdateDelegateRepresentative(_) -> @"UpdateDelegateRepresentative"
-      UnregisterDelegateRepresentative(_, _) ->
+    when cert is {
+      Certificate.RegisterCredential { .. } -> @"RegisterCredential"
+      Certificate.UnregisterCredential { .. } -> @"UnregisterCredential"
+      Certificate.DelegateCredential { .. } -> @"DelegateCredential"
+      Certificate.RegisterAndDelegateCredential { .. } ->
+        @"RegisterAndDelegateCredential"
+      Certificate.RegisterDelegateRepresentative { .. } ->
+        @"RegisterDelegateRepresentative"
+      Certificate.UpdateDelegateRepresentative { .. } ->
+        @"UpdateDelegateRepresentative"
+      Certificate.UnregisterDelegateRepresentative { .. } ->
         @"UnregisterDelegateRepresentative"
-      RegisterStakePool(_, _) -> @"RegisterStakePool"
-      RetireStakePool(_, _) -> @"RetireStakePool"
-      AuthorizeConstitutionalCommitteeProxy(_, _) ->
+      Certificate.RegisterStakePool { .. } -> @"RegisterStakePool"
+      Certificate.RetireStakePool { .. } -> @"RetireStakePool"
+      Certificate.AuthorizeConstitutionalCommitteeProxy { .. } ->
         @"AuthorizeConstitutionalCommitteeProxy"
-      RetireFromConstitutionalCommittee(_) ->
+      Certificate.RetireFromConstitutionalCommittee { .. } ->
         @"RetireFromConstitutionalCommittee"
     },
   )
 }
 
 /// Test for delegate generator
-test prop_delegate(d via delegate()) {
+test prop_delegate(delegate via delegate()) {
   label(
-    when d is {
-      DelegateBlockProduction(_) -> @"DelegateBlockProduction"
-      DelegateVote(_) -> @"DelegateVote"
-      DelegateBoth(_, _) -> @"DelegateBoth"
+    when delegate is {
+      Delegate.DelegateBlockProduction { .. } -> @"DelegateBlockProduction"
+      Delegate.DelegateVote { .. } -> @"DelegateVote"
+      Delegate.DelegateBoth { .. } -> @"DelegateBoth"
     },
   )
 }
 
 /// Test for delegate_representative (DelegateRepresentative) generator
-test prop_delegate_representative(d via delegate_representative()) {
+test prop_delegate_representative(drep via delegate_representative()) {
   label(
-    when d is {
-      Registered(_) -> @"Registered"
-      AlwaysAbstain -> @"AlwaysAbstain"
-      AlwaysNoConfidence -> @"AlwaysNoConfidence"
+    when drep is {
+      DelegateRepresentative.Registered(_) -> @"Registered"
+      DelegateRepresentative.AlwaysAbstain -> @"AlwaysAbstain"
+      DelegateRepresentative.AlwaysNoConfidence -> @"AlwaysNoConfidence"
     },
   )
 }
