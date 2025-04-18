@@ -18,6 +18,14 @@ It provides many useful primitives for writing and composing arbitrary generator
 aiken add aiken-lang/fuzz --version v2
 ```
 
+## Compatibility
+
+aiken's version | fuzz's version(s)
+---             | ---
+$>=$ `v1.1.15`  | `2.2.0`
+$>=$ `v1.1.13`  | `2.1.1`, `2.1.0`
+$>=$ `v1.1.0`   | `1.0.0`
+
 ## Getting started
 
 First, make sure you have the [Aiken's user manual about tests](https://aiken-lang.org/language-tour/tests#property-based-test); in particular the section about property-based test.
