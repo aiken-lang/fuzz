@@ -4,11 +4,20 @@
 
 ### Added
 
-- Transaction specific functionality:
-    - Assets / Value Fuzzers
-    - Certificate Fuzzers
-    - Credential and Address Fuzzers
-    - Transaction Fuzzer helpers
+- New Cardano-specific fuzzers covering
+  - [Address](https://aiken-lang.github.io/fuzz/cardano/fuzz.html#Address)
+  - [Assets](https://aiken-lang.github.io/fuzz/cardano/fuzz.html#Assets)
+  - [Certificate](https://aiken-lang.github.io/fuzz/cardano/fuzz.html#Certificate)
+  - [Transaction](https://aiken-lang.github.io/fuzz/cardano/fuzz.html#Transaction)
+
+- New [`data() -> Fuzzer<Data>`](https://aiken-lang.github.io/fuzz/aiken/fuzz.html#data)
+
+## v2.1.1 - 2025-01-21
+
+### Added
+
+- More primitives for fuzzers:
+    - `tuple`, `tuple3`, `tuple4`, `tuple5`, `tuple6`, `tuple7`, `tuple8`, `tuple9`
 
 ## v2.1.0 - 2024-09-24
 
