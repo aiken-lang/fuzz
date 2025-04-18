@@ -213,61 +213,62 @@ test rational_distribution(fraction via rational()) {
   fraction_distribution(fraction)
 }
 
+fn expect_rational(numerator: Int, denominator: Int) -> Rational {
+  expect Some(r) = rational.new(numerator, denominator)
+  r
+}
+
 test prop_fraction_between_bounds(
-  fraction via rational_between(rational.new(-255, 1), rational.new(255, 1)),
+  fraction via rational_between(
+    expect_rational(-255, 1),
+    expect_rational(255, 1),
+  ),
 ) {
   fraction_distribution(fraction)
-  expect Some(lower_bound) = rational.new(-255, 1)
-  expect Some(upper_bound) = rational.new(255, 1)
-  (
-    rational.compare(fraction, lower_bound) == Greater || rational.compare(
-      fraction,
-      lower_bound,
-    ) == Equal
-  ) && (
-    rational.compare(fraction, upper_bound) == Less || rational.compare(
-      fraction,
-      upper_bound,
-    ) == Equal
-  )
+  and {
+    {
+      let ord = rational.compare(fraction, expect_rational(-255, 1))
+      ord == Greater || ord == Equal
+    },
+    {
+      let ord = rational.compare(fraction, expect_rational(255, 1))
+      ord == Less || ord == Equal
+    },
+  }
 }
 
 test prop_at_least_for_positive_fractions(
-  fraction via rational_at_least(rational.new(1, 1)),
+  fraction via rational_at_least(expect_rational(1, 1)),
 ) {
   fraction_distribution(fraction)
-  expect Some(lower_bound) = rational.new(1, 1)
-  expect Some(upper_bound) = rational.new(255, 1)
-  (
-    rational.compare(fraction, lower_bound) == Greater || rational.compare(
-      fraction,
-      lower_bound,
-    ) == Equal
-  ) && (
-    rational.compare(fraction, upper_bound) == Less || rational.compare(
-      fraction,
-      upper_bound,
-    ) == Equal
-  )
+
+  and {
+    {
+      let ord = rational.compare(fraction, expect_rational(1, 1))
+      ord == Greater || ord == Equal
+    },
+    {
+      let ord = rational.compare(fraction, expect_rational(255, 1))
+      ord == Less || ord == Equal
+    },
+  }
 }
 
 test prop_at_most_for_negative_fraction(
-  fraction via rational_at_most(rational.new(0, 1)),
+  fraction via rational_at_most(expect_rational(0, 1)),
 ) {
   fraction_distribution(fraction)
-  expect Some(lower_bound) = rational.new(-255, 1)
-  expect Some(upper_bound) = rational.new(0, 1)
-  (
-    rational.compare(fraction, lower_bound) == Greater || rational.compare(
-      fraction,
-      lower_bound,
-    ) == Equal
-  ) && (
-    rational.compare(fraction, upper_bound) == Less || rational.compare(
-      fraction,
-      upper_bound,
-    ) == Equal
-  )
+
+  and {
+    {
+      let ord = rational.compare(fraction, expect_rational(-255, 1))
+      ord == Greater || ord == Equal
+    },
+    {
+      let ord = rational.compare(fraction, expect_rational(0, 1))
+      ord == Less || ord == Equal
+    },
+  }
 }
 
 fn fraction_distribution(fraction: Rational) {

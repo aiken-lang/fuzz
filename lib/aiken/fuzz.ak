@@ -1,8 +1,8 @@
 use aiken/builtin
 use aiken/collection/list
 use aiken/math
-use aiken/option
 use aiken/math/rational.{Rational, new, reduce}
+use aiken/option
 
 // ## Constructing
 // ### Primitives
@@ -251,11 +251,12 @@ pub fn int_at_most(max: Int) -> Fuzzer<Int> {
 /// [101,255]     4.9%
 /// >255          3.0%
 pub fn rational() -> Fuzzer<Rational> {
-  map(both(int(), int_at_least(1)),
+  map(
+    both(int(), int_at_least(1)),
     fn((numerator, denominator)) {
       expect Some(fraction) = new(numerator, denominator)
       fraction
-    }
+    },
   )
 }
 
@@ -266,55 +267,86 @@ pub fn rational() -> Fuzzer<Rational> {
 /// [101, 255]    30.1%
 ///
 /// The upper and lower bounds must be between -255 and 255.
-pub fn rational_between(optional_min: Option<Rational>, optional_max: Option<Rational>) -> Fuzzer<Rational> {
-  expect Some(lower_bound) = optional_min
-  expect Some(upper_bound) = optional_max
-  expect True = correct_bounds(lower_bound, upper_bound)
-  
+pub fn rational_between(
+  lower_bound: Rational,
+  upper_bound: Rational,
+) -> Fuzzer<Rational> {
+  expect correct_bounds(lower_bound, upper_bound)
+
   if lower_bound == upper_bound {
-    expect Some(fraction) = new(rational.numerator(lower_bound), rational.denominator(lower_bound))
-    constant(fraction)
+    lower_bound |> rational.reduce |> constant
   } else if rational.compare(lower_bound, upper_bound) == Greater {
-    rational_between(Some(upper_bound), Some(lower_bound))
+    rational_between(upper_bound, lower_bound)
   } else {
-    let denominator <- and_then(int_at_least(math.max(rational.denominator(lower_bound), rational.denominator(upper_bound)) + 1))
-    let min_numerator = binary_search_min_numerator(lower_bound, denominator, -255 * denominator, 255 * denominator)
-    let max_numerator = binary_search_max_numerator(upper_bound, denominator, -255 * denominator, 255 * denominator)
-    map(int_between(min_numerator, max_numerator), fn(numerator) {
-      expect Some(fraction) = new(numerator, denominator)
-      reduce(fraction)
-    })
+    let denominator <-
+      and_then(
+        int_at_least(
+          math.max(
+            rational.denominator(lower_bound),
+            rational.denominator(upper_bound),
+          ) + 1,
+        ),
+      )
+
+    let min_numerator =
+      binary_search_min_numerator(
+        lower_bound,
+        denominator,
+        -255 * denominator,
+        255 * denominator,
+      )
+    let max_numerator =
+      binary_search_max_numerator(
+        upper_bound,
+        denominator,
+        -255 * denominator,
+        255 * denominator,
+      )
+    map(
+      int_between(min_numerator, max_numerator),
+      fn(numerator) {
+        expect Some(fraction) = new(numerator, denominator)
+        reduce(fraction)
+      },
+    )
   }
 }
 
 /// Generates a random rational value that is at least `optional_min`.
 /// The lower bound must be between -255 and 255.
-pub fn rational_at_least(optional_min: Option<Rational>) -> Fuzzer<Rational> {
-  rational_between(optional_min, new(255, 1))
+pub fn rational_at_least(lower_bound: Rational) -> Fuzzer<Rational> {
+  expect Some(upper_bound) = new(255, 1)
+  rational_between(lower_bound, upper_bound)
 }
 
 /// Generates a random rational value that is at most `opt_max`.
 /// The upper bound must be between -255 and 255.
-pub fn rational_at_most(optional_max: Option<Rational>) {
-  rational_between(optional_max, new(-255, 1))
+pub fn rational_at_most(upper_bound: Rational) {
+  expect Some(lower_bound) = new(-255, 1)
+  rational_between(lower_bound, upper_bound)
 }
-
 
 fn correct_bounds(min_fraction: Rational, max_fraction: Rational) {
   expect Some(lower_bound) = new(-256, 1)
   expect Some(upper_bound) = new(256, 1)
 
-  (rational.compare(min_fraction, lower_bound) == Greater 
-   && rational.compare(min_fraction, upper_bound) == Less
-   && rational.compare(max_fraction, lower_bound) == Greater
-   && rational.compare(max_fraction, upper_bound) == Less)
+  and {
+    rational.compare(min_fraction, lower_bound) == Greater,
+    rational.compare(min_fraction, upper_bound) == Less,
+    rational.compare(max_fraction, lower_bound) == Greater,
+    rational.compare(max_fraction, upper_bound) == Less,
+  }
 }
 
-
-fn binary_search_min_numerator(min_fraction: Rational, denominator: Int, low: Int, high: Int) -> Int {
-  let mid_point = (low + high) / 2
+fn binary_search_min_numerator(
+  min_fraction: Rational,
+  denominator: Int,
+  low: Int,
+  high: Int,
+) -> Int {
+  let mid_point = ( low + high ) / 2
   expect Some(mid_fraction) = new(mid_point, denominator)
-    
+
   if low > high {
     low
   } else if rational.compare(mid_fraction, min_fraction) == Less {
@@ -324,10 +356,15 @@ fn binary_search_min_numerator(min_fraction: Rational, denominator: Int, low: In
   }
 }
 
-fn binary_search_max_numerator(max_fraction: Rational, denominator: Int, low: Int, high: Int) -> Int {
-  let mid_point = (low + high) / 2
+fn binary_search_max_numerator(
+  max_fraction: Rational,
+  denominator: Int,
+  low: Int,
+  high: Int,
+) -> Int {
+  let mid_point = ( low + high ) / 2
   expect Some(mid_fraction) = new(mid_point, denominator)
-  
+
   if low > high {
     high
   } else if rational.compare(mid_fraction, max_fraction) == Greater {
@@ -336,6 +373,7 @@ fn binary_search_max_numerator(max_fraction: Rational, denominator: Int, low: In
     binary_search_max_numerator(max_fraction, denominator, mid_point + 1, high)
   }
 }
+
 // ### Data-structures
 
 /// Generate a random list of elements from a given fuzzer. The list contains
