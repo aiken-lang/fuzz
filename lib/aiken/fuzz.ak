@@ -74,6 +74,45 @@ fn bytearray_fixed_inner(len: Int) -> Fuzzer<ByteArray> {
   }
 }
 
+/// Generate an arbitrary `Data`.
+pub fn data() -> Fuzzer<Data> {
+  do_data(depth: 3)
+}
+
+fn do_data(depth: Int) -> Fuzzer<Data> {
+  let data_type <- and_then(byte())
+  if data_type < 128 || depth <= 0 {
+    if data_type < 64 {
+      map(int(), builtin.i_data)
+    } else {
+      map(bytearray(), builtin.b_data)
+    }
+  } else {
+    if data_type < 170 {
+      map(list_between(do_data(depth - 1), 0, depth), builtin.list_data)
+    } else if data_type < 212 {
+      map(
+        list_between(
+          {
+            let k <- and_then(do_data(depth - 1))
+            let v <- map(do_data(depth - 1))
+            Pair(k, v)
+          },
+          0,
+          depth - 1,
+        ),
+        builtin.map_data,
+      )
+    } else {
+      map2(
+        byte(),
+        list_between(do_data(depth - 1), 0, depth),
+        builtin.constr_data,
+      )
+    }
+  }
+}
+
 const int_bucket_small: Int = 128
 
 const int_bucket_zero: Int = 132
