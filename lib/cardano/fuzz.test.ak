@@ -44,6 +44,8 @@ test prop_credential_distribution(credential via cardano.credential()) {
 }
 
 test prop_certificate_distribution(cert via cardano.certificate()) {
+  // TODO: Present to supress a wrong 'unused' warning. To be removed in 1.1.17;
+  let cert: Certificate = cert
   label(
     when cert is {
       Certificate.RegisterCredential { .. } -> @"RegisterCredential"
@@ -68,6 +70,8 @@ test prop_certificate_distribution(cert via cardano.certificate()) {
 }
 
 test prop_delegate_distribution(delegate via cardano.delegate()) {
+  // TODO: Present to supress a wrong 'unused' warning. To be removed in 1.1.17;
+  let delegate: Delegate = delegate
   label(
     when delegate is {
       Delegate.DelegateBlockProduction { .. } -> @"DelegateBlockProduction"
@@ -80,6 +84,8 @@ test prop_delegate_distribution(delegate via cardano.delegate()) {
 test prop_delegate_representative_distribution(
   drep via cardano.delegate_representative(),
 ) {
+  // TODO: Present to supress a wrong 'unused' warning. To be removed in 1.1.17;
+  let drep: DelegateRepresentative = drep
   label(
     when drep is {
       DelegateRepresentative.Registered(_) -> @"Registered"
@@ -90,6 +96,8 @@ test prop_delegate_representative_distribution(
 }
 
 test prop_datum_distribution(datum via cardano.datum()) {
+  // TODO: Present to supress a wrong 'unused' warning. To be removed in 1.1.17;
+  let datum: Datum = datum
   label(
     when datum is {
       Datum.NoDatum -> @"NoDatum"
