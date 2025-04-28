@@ -301,7 +301,7 @@ pub fn value(self: Value) -> Fuzzer<Value> {
     self,
     list_between(policy_id(), 0, 3),
     fn(_) { asset_name() },
-    fn(_) { int_at_least(1) },
+    fn(_, _) { int_at_least(1) },
   )
 }
 
@@ -320,14 +320,14 @@ pub fn value(self: Value) -> Fuzzer<Value> {
 ///        fuzz.constant(my_other_asset)
 ///     }
 ///   },
-///   quantity: fn(_) { fuzz.constant(1) }
+///   quantity: fn(_, _) { fuzz.constant(1) }
 /// )
 /// ```
 pub fn value_with(
   self: Value,
   policies: Fuzzer<List<PolicyId>>,
   asset_name: fn(PolicyId) -> Fuzzer<AssetName>,
-  quantity: fn(AssetName) -> Fuzzer<Int>,
+  quantity: fn(PolicyId, AssetName) -> Fuzzer<Int>,
 ) -> Fuzzer<Value> {
   let policies <- and_then(policies)
   list.foldr(
@@ -336,7 +336,7 @@ pub fn value_with(
     fn(policy, step) {
       let value <- and_then(step)
       let asset_name <- and_then(asset_name(policy))
-      let quantity <- map(quantity(asset_name))
+      let quantity <- map(quantity(policy, asset_name))
       value |> assets.add(policy, asset_name, quantity)
     },
   )
