@@ -3,10 +3,12 @@ use aiken/fuzz.{
   and_then, bool, byte, bytearray, constant, either3, either4, either5, either6,
   either7, either8, either9, int, int_between, label, list_between,
   list_with_elem, map, map2, map3, map4, map5, map6, map7, map8, map9, one_of,
-  set, set_between, sublist, such_that, tuple, tuple3, tuple4, tuple5, tuple6,
-  tuple7, tuple8, tuple9,
+  rational, rational_at_least, rational_at_most, rational_between, set,
+  set_between, sublist, such_that, tuple, tuple3, tuple4, tuple5, tuple6, tuple7,
+  tuple8, tuple9,
 }
 use aiken/math
+use aiken/math/rational.{Rational}
 use aiken/primitive/bytearray
 use aiken/primitive/string
 
@@ -20,7 +22,7 @@ test prop_int_distribution(n via int()) {
       @"0"
     } else if n < 256 {
       @"]0; 255]"
-    } else if n < 16383 {
+    } else if n <= 16383 {
       @"[256; 16383]"
     } else {
       fail @"n > 16383"
@@ -205,6 +207,92 @@ test prop_set_between_distribution(n via set_between(int_between(0, 50), 3, 13))
   let len = n |> list.length
   label(len |> string.from_int)
   True
+}
+
+test rational_distribution(fraction via rational()) {
+  fraction_distribution(fraction)
+}
+
+fn expect_rational(numerator: Int, denominator: Int) -> Rational {
+  expect Some(r) = rational.new(numerator, denominator)
+  r
+}
+
+test prop_fraction_between_bounds(
+  fraction via rational_between(
+    expect_rational(-255, 1),
+    expect_rational(255, 1),
+  ),
+) {
+  fraction_distribution(fraction)
+  and {
+    {
+      let ord = rational.compare(fraction, expect_rational(-255, 1))
+      ord == Greater || ord == Equal
+    },
+    {
+      let ord = rational.compare(fraction, expect_rational(255, 1))
+      ord == Less || ord == Equal
+    },
+  }
+}
+
+test prop_at_least_for_positive_fractions(
+  fraction via rational_at_least(expect_rational(1, 1)),
+) {
+  fraction_distribution(fraction)
+
+  and {
+    {
+      let ord = rational.compare(fraction, expect_rational(1, 1))
+      ord == Greater || ord == Equal
+    },
+    {
+      let ord = rational.compare(fraction, expect_rational(255, 1))
+      ord == Less || ord == Equal
+    },
+  }
+}
+
+test prop_at_most_for_negative_fraction(
+  fraction via rational_at_most(expect_rational(0, 1)),
+) {
+  fraction_distribution(fraction)
+
+  and {
+    {
+      let ord = rational.compare(fraction, expect_rational(-255, 1))
+      ord == Greater || ord == Equal
+    },
+    {
+      let ord = rational.compare(fraction, expect_rational(0, 1))
+      ord == Less || ord == Equal
+    },
+  }
+}
+
+fn fraction_distribution(fraction: Rational) {
+  expect Some(bound_1) = rational.new(-255, 1)
+  expect Some(bound_2) = rational.new(-100, 1)
+  expect Some(bound_3) = rational.new(0, 1)
+  expect Some(bound_4) = rational.new(100, 1)
+  expect Some(bound_5) = rational.new(256, 1)
+
+  label(
+    if rational.compare(fraction, bound_1) == Less {
+      fail
+    } else if rational.compare(fraction, bound_2) == Less {
+      @"[-255,-101]"
+    } else if rational.compare(fraction, bound_3) == Less {
+      @"[-100,-1]"
+    } else if rational.compare(fraction, bound_4) == Less {
+      @"[0, 100]"
+    } else if rational.compare(fraction, bound_5) == Less {
+      @"[101,255]"
+    } else {
+      @">255"
+    },
+  )
 }
 
 // This property simply illustrate a case where the `set`
