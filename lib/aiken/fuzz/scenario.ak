@@ -11,8 +11,9 @@ use aiken/cbor
 use aiken/collection/dict
 use aiken/collection/list
 use aiken/collection/pairs
-use aiken/crypto.{ScriptHash}
+use aiken/crypto.{ScriptHash, blake2b_256}
 use aiken/fuzz.{and_then, byte, constant as return, map}
+use aiken/primitive/bytearray
 use aiken/primitive/string
 use cardano/address.{Credential, Script}
 use cardano/assets.{PolicyId}
@@ -148,6 +149,47 @@ pub fn report_coverage(
     ([], []) -> fail @"generated empty scenario?"
     ([], _txs) -> Ok
     (_labels, _txs) -> Ko
+  }
+}
+
+/// Repeatedly run a K.O. scenario fuzzer to ensure that all labels eventually
+/// appear in scenarii. Fails after a while if it takes too long.
+///
+/// ```aiken
+/// const all_failures: List<String> = [ @"...", @"..." ]
+///
+/// test ko_coverage() {
+///   scenario.check_coverage(
+///     all_failures,
+///     scenario.ko(default_state, step)
+///   )
+/// }
+/// ```
+pub fn check_coverage(labels: List<String>, fuzzer: Fuzzer<(List<String>, a)>) {
+  do_check_coverage(
+    labels,
+    Seeded { seed: blake2b_256(""), choices: "" },
+    fuzzer,
+  )
+}
+
+fn do_check_coverage(
+  labels: List<String>,
+  prng: PRNG,
+  fuzzer: Fuzzer<(List<String>, a)>,
+) {
+  expect Seeded { choices, .. } = prng
+  if bytearray.length(choices) > 250000 {
+    trace @"uncovered labels": labels
+    fail @"took too long to find coverage for all labels"
+  } else {
+    when labels is {
+      [] -> Void
+      _ -> {
+        expect Some((prng, (seen_labels, _))) = fuzzer(prng)
+        do_check_coverage(list.difference(labels, seen_labels), prng, fuzzer)
+      }
+    }
   }
 }
 
