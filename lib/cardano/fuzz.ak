@@ -648,6 +648,13 @@ pub fn stake_pool_id_with(
 
 // ## Transaction
 
+const transaction_id_size: Int = 32
+
+/// Generate an arbitrary `TransactionId`
+pub fn transaction_id() -> Fuzzer<TransactionId> {
+  bytearray_between(transaction_id_size, transaction_id_size)
+}
+
 // ### Tx :: Datum
 
 const datum_hash_size: Int = 32
@@ -735,14 +742,9 @@ pub fn output_with(
 
 // ### Tx :: OutputReference
 
-const transaction_id_size: Int = 32
-
 /// Generate an arbitrary `OutputReference`, with reasonably sized output indexes.
 pub fn output_reference() -> Fuzzer<OutputReference> {
-  output_reference_with(
-    bytearray_between(transaction_id_size, transaction_id_size),
-    int_between(0, 300),
-  )
+  output_reference_with(transaction_id(), int_between(0, 300))
 }
 
 /// Generate an arbitrary `OutputReference`, specifying fuzzers for sub-elements.
