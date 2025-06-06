@@ -130,7 +130,12 @@ pub fn credential() -> Fuzzer<Credential> {
 
 /// Generate an arbitrary `Script` credential.
 pub fn script() -> Fuzzer<Credential> {
-  script_with(bytearray_between(credential_hash_size, credential_hash_size))
+  script_with(script_hash())
+}
+
+/// Generate an arbitrary `ScriptHash`
+pub fn script_hash() -> Fuzzer<ScriptHash> {
+  bytearray_between(credential_hash_size, credential_hash_size)
 }
 
 /// Generate an arbitrary `Script` credential, specifying a hash `Fuzzer`.
@@ -150,9 +155,12 @@ pub fn script_with(script_hash: Fuzzer<ScriptHash>) -> Fuzzer<Credential> {
 
 /// Generate an arbitrary `VerificationKey` credential.
 pub fn verification_key() -> Fuzzer<Credential> {
-  verification_key_with(
-    bytearray_between(credential_hash_size, credential_hash_size),
-  )
+  verification_key_with(verification_key_hash())
+}
+
+/// Generate an arbitrary `VerificationKeyHash`.
+pub fn verification_key_hash() -> Fuzzer<VerificationKeyHash> {
+  bytearray_between(credential_hash_size, credential_hash_size)
 }
 
 /// Generate an arbitrary `VerificationKey` credential, specifying a hash `Fuzzer`.
