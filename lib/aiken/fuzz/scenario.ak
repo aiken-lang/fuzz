@@ -8,8 +8,8 @@
 //// - [cardanosolutions/zhuli](https://github.com/CardanoSolutions/zhuli/blob/main/validators/zhuli.test.ak)
 
 use aiken/cbor
-use aiken/collection/dict
-use aiken/collection/list
+use aiken/collection/dict.{Dict}
+use aiken/collection/list.{for_each}
 use aiken/collection/pairs
 use aiken/crypto.{ScriptHash, blake2b_256}
 use aiken/fuzz.{and_then, byte, constant as return, map}
@@ -166,31 +166,71 @@ pub fn report_coverage(
 /// }
 /// ```
 pub fn check_coverage(labels: List<String>, fuzzer: Fuzzer<(List<String>, a)>) {
-  do_check_coverage(
-    labels,
-    Seeded { seed: blake2b_256(""), choices: "" },
-    fuzzer,
-  )
+  let labels = list.map(labels, bytearray.from_string)
+
+  let collected =
+    do_check_coverage(
+      Seeded { seed: blake2b_256(""), choices: "" },
+      fuzzer,
+      labels,
+      dict.empty,
+    )
+
+  when list.difference(dict.keys(collected), labels) is {
+    [] -> Void
+    unseen_labels -> {
+      trace @"scenario yielded more labels than expected:"
+      for_each(
+        unseen_labels,
+        fn(label) {
+          trace bytearray.to_string(label)
+          Void
+        },
+      )
+      fail
+    }
+  }
 }
 
 fn do_check_coverage(
-  labels: List<String>,
   prng: PRNG,
   fuzzer: Fuzzer<(List<String>, a)>,
-) {
+  labels: List<ByteArray>,
+  accum: Dict<String, Void>,
+) -> Dict<String, Void> {
   expect Seeded { choices, .. } = prng
   if bytearray.length(choices) > 250000 {
-    trace @"uncovered labels": labels
+    trace @"uncovered labels:"
+    for_each(
+      labels,
+      fn(label) {
+        trace bytearray.to_string(label)
+        Void
+      },
+    )
     fail @"took too long to find coverage for all labels"
   } else {
     when labels is {
-      [] -> Void
+      [] -> accum
       _ -> {
         expect Some((prng, (seen_labels, _))) = fuzzer(prng)
-        do_check_coverage(list.difference(labels, seen_labels), prng, fuzzer)
+        do_check_coverage(
+          prng,
+          fuzzer,
+          list.difference(labels, list.map(seen_labels, bytearray.from_string)),
+          insert_all(accum, seen_labels),
+        )
       }
     }
   }
+}
+
+fn insert_all(set: Dict<String, Void>, labels: List<String>) {
+  list.foldl(
+    labels,
+    set,
+    fn(label, set) { dict.insert(set, bytearray.from_string(label), Void) },
+  )
 }
 
 /// A helper for classifying scenarios based on some given predicates.
