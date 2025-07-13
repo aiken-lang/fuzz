@@ -4,6 +4,7 @@
 ////
 //// A full tutorial is coming soon. For now, see examples:
 ////
+//// - [pragma-org/amaru-treasury](https://github.com/pragma-org/amaru-treasury/blob/main/validators)
 //// - [mpizenberg/cardano-badges](https://github.com/mpizenberg/cardano-badges/tree/main/aiken-badges/validators/check_badges.tests.ak)
 //// - [cardanosolutions/zhuli](https://github.com/CardanoSolutions/zhuli/blob/main/validators/zhuli.test.ak)
 

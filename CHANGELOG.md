@@ -1,6 +1,6 @@
 # Changelog
 
-## v2.2.0 - UNRELEASED
+## v2.2.0 - 2025-07-13
 
 ### Added
 
@@ -9,6 +9,8 @@
   - [Assets](https://aiken-lang.github.io/fuzz/cardano/fuzz.html#Assets)
   - [Certificate](https://aiken-lang.github.io/fuzz/cardano/fuzz.html#Certificate)
   - [Transaction](https://aiken-lang.github.io/fuzz/cardano/fuzz.html#Transaction)
+
+- New chaos-testing framework under [aiken/fuzz/scenario](https://aiken-lang.github.io/fuzz/aiken/fuzz/scenario.html)
 
 - New [`data() -> Fuzzer<Data>`](https://aiken-lang.github.io/fuzz/aiken/fuzz.html#data)
 
