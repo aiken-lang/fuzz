@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- More primitives for generating [`Dict`](https://aiken-lang.github.io/stdlib/aiken/collection/dict.html#Dict)s:
+    - `dict`, `dict_between`, `dict_at_least`, `dict_at_most`, `dict_from`
+
 ## v2.2.0 - 2025-07-13
 
 ### Added

@@ -1,4 +1,5 @@
 use aiken/builtin
+use aiken/collection/dict.{Dict, empty, insert}
 use aiken/collection/list
 use aiken/math
 use aiken/option
@@ -243,6 +244,89 @@ pub fn int_at_most(max: Int) -> Fuzzer<Int> {
 }
 
 // ### Data-structures
+
+/// Generate a random [`Dict`](https://aiken-lang.github.io/stdlib/aiken/collection/dict.html#Dict)
+/// from a key fuzzer and a value fuzzer. The dict contains *at most `20`*
+/// elements, and has a higher probability of generating smaller dicts.
+///
+/// **Important:** The key fuzzer must have a high enough entropy to yield
+/// enough unique keys to fill the dict with the required size!
+///
+/// For dicts of a specific size, use [`dict_between`](#dict_between).
+pub fn dict(
+  fuzz_key: Fuzzer<ByteArray>,
+  fuzz_value: Fuzzer<value>,
+) -> Fuzzer<Dict<key, value>> {
+  dict_between(fuzz_key, fuzz_value, 0, 20)
+}
+
+/// Generate a random [`Dict`](https://aiken-lang.github.io/stdlib/aiken/collection/dict.html#Dict)
+/// with a size within the specified bounds. The resulting dict contains
+/// *at least `min`* elements and *at most `max`* elements, with a higher
+/// probability of generating smaller dicts; the size distribution is the
+/// one of [`set_between`](#set_between), which generates the keys.
+///
+/// **Important:** The key fuzzer must have a high enough entropy to yield
+/// enough unique keys to fill the dict with the required size!
+pub fn dict_between(
+  fuzz_key: Fuzzer<ByteArray>,
+  fuzz_value: Fuzzer<value>,
+  min: Int,
+  max: Int,
+) -> Fuzzer<Dict<key, value>> {
+  let keys <- and_then(set_between(fuzz_key, min, max))
+  do_dict(keys, fuzz_value, empty)
+}
+
+/// Generate a random [`Dict`](https://aiken-lang.github.io/stdlib/aiken/collection/dict.html#Dict)
+/// with at least `min` elements.
+///
+/// **Important:** The key fuzzer must have a high enough entropy to yield
+/// enough unique keys to fill the dict with the required size!
+pub fn dict_at_least(
+  fuzz_key: Fuzzer<ByteArray>,
+  fuzz_value: Fuzzer<value>,
+  min: Int,
+) -> Fuzzer<Dict<key, value>> {
+  dict_between(fuzz_key, fuzz_value, min, min + 20)
+}
+
+/// Generate a random [`Dict`](https://aiken-lang.github.io/stdlib/aiken/collection/dict.html#Dict)
+/// with at most `max` elements.
+pub fn dict_at_most(
+  fuzz_key: Fuzzer<ByteArray>,
+  fuzz_value: Fuzzer<value>,
+  max: Int,
+) -> Fuzzer<Dict<key, value>> {
+  dict_between(fuzz_key, fuzz_value, 0, max)
+}
+
+/// Generate a random [`Dict`](https://aiken-lang.github.io/stdlib/aiken/collection/dict.html#Dict)
+/// from a sample of keys, generating one value per key. Duplicate keys in
+/// the sample collapse into a single entry (the last generated value wins),
+/// so the resulting dict can be smaller than the sample.
+pub fn dict_from(
+  fuzz_keys: Fuzzer<List<ByteArray>>,
+  fuzz_value: Fuzzer<value>,
+) -> Fuzzer<Dict<key, value>> {
+  let keys <- and_then(fuzz_keys)
+  do_dict(keys, fuzz_value, empty)
+}
+
+/// Generate one value per key, inserting as we go.
+fn do_dict(
+  keys: List<ByteArray>,
+  fuzz_value: Fuzzer<value>,
+  acc: Dict<key, value>,
+) -> Fuzzer<Dict<key, value>> {
+  when keys is {
+    [] -> constant(acc)
+    [key, ..rest] -> {
+      let value <- and_then(fuzz_value)
+      do_dict(rest, fuzz_value, insert(acc, key, value))
+    }
+  }
+}
 
 /// Generate a random list of elements from a given fuzzer. The list contains
 /// *at most `20`* elements, and has a higher probability of generating smaller lists.

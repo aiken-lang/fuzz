@@ -1,3 +1,4 @@
+use aiken/collection/dict.{Dict}
 use aiken/collection/list
 use aiken/fuzz.{
   and_then, bool, byte, bytearray, constant, either3, either4, either5, either6,
@@ -648,4 +649,71 @@ test property_test(vs via fuzz.list_between(fuzz.constant(Void), 5, 10)) fail {
   let len = vs |> list.length
   len < 5
   // DO NOT MODIFY ABOVE //
+}
+
+fn dict_of_int() -> Fuzzer<Dict<ByteArray, Int>> {
+  fuzz.dict(fuzz.bytearray(), int())
+}
+
+test prop_dict_size_distribution(d via dict_of_int()) {
+  let size = dict.size(d)
+  buckets(size, 0, 21, fn(n) { n + 3 })
+  size >= 0 && size <= 20
+}
+
+fn dict_between_fixture() -> Fuzzer<Dict<ByteArray, Int>> {
+  fuzz.dict_between(fuzz.bytearray(), int_between(0, 10), 3, 7)
+}
+
+test prop_dict_between_bounds(d via dict_between_fixture()) {
+  let size = dict.size(d)
+  label(size |> string.from_int)
+  and {
+    size >= 3,
+    size <= 7,
+    list.all(dict.values(d), fn(v) { v >= 0 && v <= 10 }),
+  }
+}
+
+test prop_dict_keys_sorted_unique(d via dict_of_int()) {
+  strictly_ascending(dict.keys(d))
+}
+
+fn dict_at_least_fixture() -> Fuzzer<Dict<ByteArray, Int>> {
+  fuzz.dict_at_least(fuzz.bytearray(), int(), 5)
+}
+
+test prop_dict_at_least(d via dict_at_least_fixture()) {
+  dict.size(d) >= 5
+}
+
+fn dict_at_most_fixture() -> Fuzzer<Dict<ByteArray, Int>> {
+  fuzz.dict_at_most(fuzz.bytearray(), int(), 5)
+}
+
+test prop_dict_at_most(d via dict_at_most_fixture()) {
+  dict.size(d) <= 5
+}
+
+fn dict_from_fixture() -> Fuzzer<Dict<ByteArray, Int>> {
+  fuzz.dict_from(constant(["alpha", "alpha", "beta"]), int())
+}
+
+test prop_dict_from_collapses_duplicates(d via dict_from_fixture()) {
+  and {
+    dict.size(d) == 2,
+    dict.get(d, "alpha") != None,
+    dict.get(d, "beta") != None,
+  }
+}
+
+fn strictly_ascending(keys: List<ByteArray>) -> Bool {
+  when keys is {
+    [] -> True
+    [_] -> True
+    [head, next, ..rest] -> and {
+        bytearray.compare(head, next) == Less,
+        strictly_ascending([next, ..rest]),
+      }
+  }
 }
