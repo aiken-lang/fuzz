@@ -9,7 +9,7 @@ use cardano/address.{
   Address, Credential, Inline, Pointer, Script, StakeCredential, VerificationKey,
 }
 use cardano/address/credential
-use cardano/assets.{AssetName, Lovelace, PolicyId, Value}
+use cardano/assets.{AssetName, Assets, Lovelace, PolicyId}
 use cardano/certificate.{
   AlwaysAbstain, AlwaysNoConfidence, AuthorizeConstitutionalCommitteeProxy,
   Certificate, Delegate, DelegateBlockProduction, DelegateBoth,
@@ -33,48 +33,58 @@ const credential_hash_size: Int = 28
 pub fn address() -> Fuzzer<Address> {
   let address_type <- and_then(byte())
   if address_type < 45 {
-    let payment <-
-      map(bytearray_between(credential_hash_size, credential_hash_size))
+    let payment <- map(
+      bytearray_between(credential_hash_size, credential_hash_size),
+    )
     Address {
       payment_credential: VerificationKey(payment),
       stake_credential: None,
     }
   } else if address_type < 87 {
-    let payment <-
-      map(bytearray_between(credential_hash_size, credential_hash_size))
+    let payment <- map(
+      bytearray_between(credential_hash_size, credential_hash_size),
+    )
     Address { payment_credential: Script(payment), stake_credential: None }
   } else if address_type < 129 {
-    let payment <-
-      and_then(bytearray_between(credential_hash_size, credential_hash_size))
-    let stake <-
-      map(bytearray_between(credential_hash_size, credential_hash_size))
+    let payment <- and_then(
+      bytearray_between(credential_hash_size, credential_hash_size),
+    )
+    let stake <- map(
+      bytearray_between(credential_hash_size, credential_hash_size),
+    )
     Address {
       payment_credential: VerificationKey(payment),
       stake_credential: Some(Inline(VerificationKey(stake))),
     }
   } else if address_type < 171 {
-    let payment <-
-      and_then(bytearray_between(credential_hash_size, credential_hash_size))
-    let stake <-
-      map(bytearray_between(credential_hash_size, credential_hash_size))
+    let payment <- and_then(
+      bytearray_between(credential_hash_size, credential_hash_size),
+    )
+    let stake <- map(
+      bytearray_between(credential_hash_size, credential_hash_size),
+    )
     Address {
       payment_credential: VerificationKey(payment),
       stake_credential: Some(Inline(Script(stake))),
     }
   } else if address_type < 213 {
-    let payment <-
-      and_then(bytearray_between(credential_hash_size, credential_hash_size))
-    let stake <-
-      map(bytearray_between(credential_hash_size, credential_hash_size))
+    let payment <- and_then(
+      bytearray_between(credential_hash_size, credential_hash_size),
+    )
+    let stake <- map(
+      bytearray_between(credential_hash_size, credential_hash_size),
+    )
     Address {
       payment_credential: Script(payment),
       stake_credential: Some(Inline(VerificationKey(stake))),
     }
   } else {
-    let payment <-
-      and_then(bytearray_between(credential_hash_size, credential_hash_size))
-    let stake <-
-      map(bytearray_between(credential_hash_size, credential_hash_size))
+    let payment <- and_then(
+      bytearray_between(credential_hash_size, credential_hash_size),
+    )
+    let stake <- map(
+      bytearray_between(credential_hash_size, credential_hash_size),
+    )
     Address {
       payment_credential: Script(payment),
       stake_credential: Some(Inline(Script(stake))),
@@ -238,6 +248,86 @@ pub fn pointer_with(
 
 // ## Assets
 
+// ### Assets :: Assets
+
+/// Generate a `Assets` holding a **positive** (i.e. > 0) quantity of lovelace, but no assets.
+pub fn lovelace() -> Fuzzer<Assets> {
+  lovelace_with(int_at_least(1))
+}
+
+/// Generate a `Assets` with no assets, specifying a `Fuzzer` for the `Lovelace` quantity.
+///
+/// #### Examples
+///
+/// ```aiken
+/// cardano.lovelace_with(int_at_least(1)) == cardano.lovelace()
+/// ```
+pub fn lovelace_with(lovelace: Fuzzer<Int>) -> Fuzzer<Assets> {
+  map(lovelace, assets.from_lovelace)
+}
+
+/// Generate an arbitrary `Assets`, extending an existing one. Use
+/// `assets.zero` or `cardano.lovelace()` as a simple starting point.
+///
+/// #### Examples
+///
+/// ```aiken
+/// /// Some arbitrary assets, possibly empty.
+/// cardano.assets(assets.zero)
+///
+/// /// At least some known NFT
+/// cardano.assets(assets.from_asset("my_policy", "my_asset_name", 1))
+///
+/// /// At least some lovelace
+/// let quantity <- fuzz.and_then(int_at_least(1))
+/// cardano.assets(assets.from_lovelace(lovelace))
+/// ```
+pub fn assets(self: Assets) -> Fuzzer<Assets> {
+  assets_with(
+    self,
+    list_between(policy_id(), 0, 3),
+    fn(_) { asset_name() },
+    fn(_, _) { int_at_least(1) },
+  )
+}
+
+/// Extend existing assets using the given fuzzers for fine-grained control.
+///
+/// #### Examples
+///
+/// ```aiken
+/// cardano.assets_with(
+///   assets.zero,
+///   policies: fuzz.constant([my_policy_1, my_policy_2]),
+///   asset_name: fn(policy) {
+///     if policy == my_policy_1 {
+///        fuzz.one_of([asset_1, asset_2, asset_3])
+///     } else {
+///        fuzz.constant(my_other_asset)
+///     }
+///   },
+///   quantity: fn(_, _) { fuzz.constant(1) }
+/// )
+/// ```
+pub fn assets_with(
+  self: Assets,
+  policies: Fuzzer<List<PolicyId>>,
+  asset_name: fn(PolicyId) -> Fuzzer<AssetName>,
+  quantity: fn(PolicyId, AssetName) -> Fuzzer<Int>,
+) -> Fuzzer<Assets> {
+  let policies <- and_then(policies)
+  list.foldr(
+    policies,
+    constant(self),
+    fn(policy, step) {
+      let value <- and_then(step)
+      let asset_name <- and_then(asset_name(policy))
+      let quantity <- map(quantity(policy, asset_name))
+      value |> assets.add(policy, asset_name, quantity)
+    },
+  )
+}
+
 // ### Assets :: AssetName
 
 const asset_name_max_len = 32
@@ -268,86 +358,6 @@ pub fn policy_id_with(policy_id: Fuzzer<PolicyId>) -> Fuzzer<PolicyId> {
   let policy <- fuzz.map(policy_id)
   expect bytearray.length(policy) == policy_id_len
   policy
-}
-
-// ### Assets :: Value
-
-/// Generate a `Value` holding a **positive** (i.e. > 0) quantity of lovelace, but no assets.
-pub fn lovelace() -> Fuzzer<Value> {
-  lovelace_with(int_at_least(1))
-}
-
-/// Generate a `Value` with no assets, specifying a `Fuzzer` for the `Lovelace` quantity.
-///
-/// #### Examples
-///
-/// ```aiken
-/// cardano.lovelace_with(int_at_least(1)) == cardano.lovelace()
-/// ```
-pub fn lovelace_with(lovelace: Fuzzer<Int>) -> Fuzzer<Value> {
-  map(lovelace, assets.from_lovelace)
-}
-
-/// Generate an arbitrary `Value`, extending an existing one. Use
-/// `assets.zero` or `cardano.lovelace()` as a simple starting point.
-///
-/// #### Examples
-///
-/// ```aiken
-/// /// Some arbitrary value, possibly empty.
-/// cardano.value(assets.zero)
-///
-/// /// At least some known NFT
-/// cardano.value(assets.from_asset("my_policy", "my_asset_name", 1))
-///
-/// /// At least some lovelace
-/// let quantity <- fuzz.and_then(int_at_least(1))
-/// cardano.value(assets.from_lovelace(lovelace))
-/// ```
-pub fn value(self: Value) -> Fuzzer<Value> {
-  value_with(
-    self,
-    list_between(policy_id(), 0, 3),
-    fn(_) { asset_name() },
-    fn(_, _) { int_at_least(1) },
-  )
-}
-
-/// Extend an existing value using the given fuzzers for fine-grained control.
-///
-/// #### Examples
-///
-/// ```aiken
-/// cardano.value_with(
-///   assets.zero,
-///   policies: fuzz.constant([my_policy_1, my_policy_2]),
-///   asset_name: fn(policy) {
-///     if policy == my_policy_1 {
-///        fuzz.one_of([asset_1, asset_2, asset_3])
-///     } else {
-///        fuzz.constant(my_other_asset)
-///     }
-///   },
-///   quantity: fn(_, _) { fuzz.constant(1) }
-/// )
-/// ```
-pub fn value_with(
-  self: Value,
-  policies: Fuzzer<List<PolicyId>>,
-  asset_name: fn(PolicyId) -> Fuzzer<AssetName>,
-  quantity: fn(PolicyId, AssetName) -> Fuzzer<Int>,
-) -> Fuzzer<Value> {
-  let policies <- and_then(policies)
-  list.foldr(
-    policies,
-    constant(self),
-    fn(policy, step) {
-      let value <- and_then(step)
-      let asset_name <- and_then(asset_name(policy))
-      let quantity <- map(quantity(policy, asset_name))
-      value |> assets.add(policy, asset_name, quantity)
-    },
-  )
 }
 
 // ## Certificate
@@ -719,13 +729,13 @@ pub fn input_with(
 /// Generate an arbitrary `Output`.
 pub fn output() -> Fuzzer<Output> {
   let lovelace <- and_then(lovelace())
-  output_with(address(), value(lovelace), datum(), reference_script())
+  output_with(address(), assets(lovelace), datum(), reference_script())
 }
 
 /// Generate an arbitrary `Output`, specifying fuzzers for sub-elements.
 pub fn output_with(
   address: Fuzzer<Address>,
-  value: Fuzzer<Value>,
+  value: Fuzzer<Assets>,
   datum: Fuzzer<Datum>,
   reference_script: Fuzzer<Option<ScriptHash>>,
 ) -> Fuzzer<Output> {

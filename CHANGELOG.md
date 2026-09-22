@@ -1,5 +1,15 @@
 # Changelog
 
+## v3.0.0 - UNRELEASED
+
+### Changed
+
+- Renamed:
+  - `fuzz/cardano.value` to `fuzz/cardano.assets`
+  - `fuzz/cardano.value_with` to `fuzz/cardano.assets_with`
+
+- Use `Assets` instead of `Value` following stdlib v4.0.0
+
 ## v2.2.0 - 2025-07-13
 
 ### Added
