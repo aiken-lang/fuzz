@@ -169,13 +169,12 @@ pub fn report_coverage(
 pub fn check_coverage(labels: List<String>, fuzzer: Fuzzer<(List<String>, a)>) {
   let labels = list.map(labels, bytearray.from_string)
 
-  let collected =
-    do_check_coverage(
-      Seeded { seed: blake2b_256(""), choices: "" },
-      fuzzer,
-      labels,
-      dict.empty,
-    )
+  let collected = do_check_coverage(
+    Seeded { seed: blake2b_256(""), choices: "" },
+    fuzzer,
+    labels,
+    dict.empty,
+  )
 
   when list.difference(dict.keys(collected), labels) is {
     [] -> Void
@@ -346,15 +345,16 @@ fn spend_handlers(
         and {
           st,
           {
-            let redeemer =
-              expect_redeemer(self.redeemers, Spend(input.output_reference))
+            let redeemer = expect_redeemer(
+              self.redeemers,
+              Spend(input.output_reference),
+            )
 
-            let datum =
-              when input.output.datum is {
-                NoDatum -> None
-                DatumHash(digest) -> dict.get(self.datums, digest)
-                InlineDatum(datum) -> Some(datum)
-              }
+            let datum = when input.output.datum is {
+              NoDatum -> None
+              DatumHash(digest) -> dict.get(self.datums, digest)
+              InlineDatum(datum) -> Some(datum)
+            }
 
             spend(datum, redeemer, input.output_reference, self)
           },
@@ -419,9 +419,8 @@ pub fn into_publish_handler(
 ) -> PublishHandler {
   fn(redeemer: Data, certificate: Certificate, transaction: Transaction) -> Bool {
     // NOTE: This function is only called by the runner when the certificate is already found.
-    expect Some(at) =
-      transaction.certificates
-        |> list.index_of(certificate)
+    expect Some(at) = transaction.certificates
+      |> list.index_of(certificate)
     fallback(
       ScriptContext {
         transaction,
@@ -501,9 +500,9 @@ fn vote_handlers(
     True,
     fn(voter, _vote, st) {
       let relevant = or {
-          voter == DelegateRepresentative(Script(script)),
-          voter == ConstitutionalCommitteeMember(Script(script)),
-        }
+        voter == DelegateRepresentative(Script(script)),
+        voter == ConstitutionalCommitteeMember(Script(script)),
+      }
 
       if relevant {
         and {

@@ -1354,9 +1354,8 @@ const min_rand = 0
 fn rand(prng: PRNG) -> Option<(PRNG, Int)> {
   when prng is {
     Seeded { seed, choices } -> {
-      let choice =
-        seed
-          |> builtin.index_bytearray(0)
+      let choice = seed
+        |> builtin.index_bytearray(0)
 
       Some(
         (
@@ -1403,13 +1402,9 @@ fn do_rand_n(
 }
 
 fn rand_n_fixture() -> Fuzzer<(Int, Int)> {
-  let bits <-
-    and_then(
-      either(
-        constant(1),
-        either(constant(5), either(constant(8), constant(25))),
-      ),
-    )
+  let bits <- and_then(
+    either(constant(1), either(constant(5), either(constant(8), constant(25)))),
+  )
   let n <- map(rand_n(bits, _))
   (bits, n)
 }
@@ -1517,12 +1512,11 @@ test prop_u16(operands via both(rand, rand)) {
   let (msb, lsb) = operands
   label_when(msb == 0, @"msb = 0", @"default")
   label_when(lsb == 0, @"lsb = 0", @"default")
-  let n =
-    builtin.bytearray_to_integer(
-      False,
-      ""
-        |> builtin.cons_bytearray(msb, _)
-        |> builtin.cons_bytearray(lsb, _),
-    )
+  let n = builtin.bytearray_to_integer(
+    False,
+    ""
+      |> builtin.cons_bytearray(msb, _)
+      |> builtin.cons_bytearray(lsb, _),
+  )
   u16(msb, lsb) == n
 }

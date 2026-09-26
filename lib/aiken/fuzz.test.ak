@@ -188,15 +188,14 @@ test prop_one_of_upper(i via one_of([1, 3, 5, 7])) fail once {
 }
 
 test prop_set(xs via set(int())) {
-  let ys =
-    list.reduce(
-      xs,
-      [],
-      fn(known, x) {
-        expect !list.has(known, x)
-        [x, ..known]
-      },
-    )
+  let ys = list.reduce(
+    xs,
+    [],
+    fn(known, x) {
+      expect !list.has(known, x)
+      [x, ..known]
+    },
+  )
 
   list.length(ys) == list.length(xs)
 }
@@ -372,8 +371,9 @@ fn prop_tuple3() -> Fuzzer<Bool> {
   let fuzzer_c = c |> constant
 
   let l_tuple <- and_then(tuple3(fuzzer_a, fuzzer_b, fuzzer_c))
-  let r_tuple <-
-    and_then(map3(fuzzer_a, fuzzer_b, fuzzer_c, fn(a, b, c) { (a, b, c) }))
+  let r_tuple <- and_then(
+    map3(fuzzer_a, fuzzer_b, fuzzer_c, fn(a, b, c) { (a, b, c) }),
+  )
 
   constant(l_tuple == r_tuple)
 }
@@ -390,16 +390,15 @@ fn prop_tuple4() -> Fuzzer<Bool> {
   let fuzzer_d = d |> constant
 
   let l_tuple <- and_then(tuple4(fuzzer_a, fuzzer_b, fuzzer_c, fuzzer_d))
-  let r_tuple <-
-    and_then(
-      map4(
-        fuzzer_a,
-        fuzzer_b,
-        fuzzer_c,
-        fuzzer_d,
-        fn(a, b, c, d) { (a, b, c, d) },
-      ),
-    )
+  let r_tuple <- and_then(
+    map4(
+      fuzzer_a,
+      fuzzer_b,
+      fuzzer_c,
+      fuzzer_d,
+      fn(a, b, c, d) { (a, b, c, d) },
+    ),
+  )
 
   constant(l_tuple == r_tuple)
 }
@@ -417,19 +416,19 @@ fn prop_tuple5() -> Fuzzer<Bool> {
   let fuzzer_d = d |> constant
   let fuzzer_e = e |> constant
 
-  let l_tuple <-
-    and_then(tuple5(fuzzer_a, fuzzer_b, fuzzer_c, fuzzer_d, fuzzer_e))
-  let r_tuple <-
-    and_then(
-      map5(
-        fuzzer_a,
-        fuzzer_b,
-        fuzzer_c,
-        fuzzer_d,
-        fuzzer_e,
-        fn(a, b, c, d, e) { (a, b, c, d, e) },
-      ),
-    )
+  let l_tuple <- and_then(
+    tuple5(fuzzer_a, fuzzer_b, fuzzer_c, fuzzer_d, fuzzer_e),
+  )
+  let r_tuple <- and_then(
+    map5(
+      fuzzer_a,
+      fuzzer_b,
+      fuzzer_c,
+      fuzzer_d,
+      fuzzer_e,
+      fn(a, b, c, d, e) { (a, b, c, d, e) },
+    ),
+  )
 
   constant(l_tuple == r_tuple)
 }
@@ -449,20 +448,20 @@ fn prop_tuple6() -> Fuzzer<Bool> {
   let fuzzer_e = e |> constant
   let fuzzer_f = f |> constant
 
-  let l_tuple <-
-    and_then(tuple6(fuzzer_a, fuzzer_b, fuzzer_c, fuzzer_d, fuzzer_e, fuzzer_f))
-  let r_tuple <-
-    and_then(
-      map6(
-        fuzzer_a,
-        fuzzer_b,
-        fuzzer_c,
-        fuzzer_d,
-        fuzzer_e,
-        fuzzer_f,
-        fn(a, b, c, d, e, f) { (a, b, c, d, e, f) },
-      ),
-    )
+  let l_tuple <- and_then(
+    tuple6(fuzzer_a, fuzzer_b, fuzzer_c, fuzzer_d, fuzzer_e, fuzzer_f),
+  )
+  let r_tuple <- and_then(
+    map6(
+      fuzzer_a,
+      fuzzer_b,
+      fuzzer_c,
+      fuzzer_d,
+      fuzzer_e,
+      fuzzer_f,
+      fn(a, b, c, d, e, f) { (a, b, c, d, e, f) },
+    ),
+  )
 
   constant(l_tuple == r_tuple)
 }
@@ -484,31 +483,21 @@ fn prop_tuple7() -> Fuzzer<Bool> {
   let fuzzer_f = f |> constant
   let fuzzer_g = g |> constant
 
-  let l_tuple <-
-    and_then(
-      tuple7(
-        fuzzer_a,
-        fuzzer_b,
-        fuzzer_c,
-        fuzzer_d,
-        fuzzer_e,
-        fuzzer_f,
-        fuzzer_g,
-      ),
-    )
-  let r_tuple <-
-    and_then(
-      map7(
-        fuzzer_a,
-        fuzzer_b,
-        fuzzer_c,
-        fuzzer_d,
-        fuzzer_e,
-        fuzzer_f,
-        fuzzer_g,
-        fn(a, b, c, d, e, f, g) { (a, b, c, d, e, f, g) },
-      ),
-    )
+  let l_tuple <- and_then(
+    tuple7(fuzzer_a, fuzzer_b, fuzzer_c, fuzzer_d, fuzzer_e, fuzzer_f, fuzzer_g),
+  )
+  let r_tuple <- and_then(
+    map7(
+      fuzzer_a,
+      fuzzer_b,
+      fuzzer_c,
+      fuzzer_d,
+      fuzzer_e,
+      fuzzer_f,
+      fuzzer_g,
+      fn(a, b, c, d, e, f, g) { (a, b, c, d, e, f, g) },
+    ),
+  )
 
   constant(l_tuple == r_tuple)
 }
@@ -532,33 +521,31 @@ fn prop_tuple8() -> Fuzzer<Bool> {
   let fuzzer_g = g |> constant
   let fuzzer_h = h |> constant
 
-  let l_tuple <-
-    and_then(
-      tuple8(
-        fuzzer_a,
-        fuzzer_b,
-        fuzzer_c,
-        fuzzer_d,
-        fuzzer_e,
-        fuzzer_f,
-        fuzzer_g,
-        fuzzer_h,
-      ),
-    )
-  let r_tuple <-
-    and_then(
-      map8(
-        fuzzer_a,
-        fuzzer_b,
-        fuzzer_c,
-        fuzzer_d,
-        fuzzer_e,
-        fuzzer_f,
-        fuzzer_g,
-        fuzzer_h,
-        fn(a, b, c, d, e, f, g, h) { (a, b, c, d, e, f, g, h) },
-      ),
-    )
+  let l_tuple <- and_then(
+    tuple8(
+      fuzzer_a,
+      fuzzer_b,
+      fuzzer_c,
+      fuzzer_d,
+      fuzzer_e,
+      fuzzer_f,
+      fuzzer_g,
+      fuzzer_h,
+    ),
+  )
+  let r_tuple <- and_then(
+    map8(
+      fuzzer_a,
+      fuzzer_b,
+      fuzzer_c,
+      fuzzer_d,
+      fuzzer_e,
+      fuzzer_f,
+      fuzzer_g,
+      fuzzer_h,
+      fn(a, b, c, d, e, f, g, h) { (a, b, c, d, e, f, g, h) },
+    ),
+  )
 
   constant(l_tuple == r_tuple)
 }
@@ -584,35 +571,33 @@ fn prop_tuple9() -> Fuzzer<Bool> {
   let fuzzer_h = h |> constant
   let fuzzer_i = i |> constant
 
-  let l_tuple <-
-    and_then(
-      tuple9(
-        fuzzer_a,
-        fuzzer_b,
-        fuzzer_c,
-        fuzzer_d,
-        fuzzer_e,
-        fuzzer_f,
-        fuzzer_g,
-        fuzzer_h,
-        fuzzer_i,
-      ),
-    )
-  let r_tuple <-
-    and_then(
-      map9(
-        fuzzer_a,
-        fuzzer_b,
-        fuzzer_c,
-        fuzzer_d,
-        fuzzer_e,
-        fuzzer_f,
-        fuzzer_g,
-        fuzzer_h,
-        fuzzer_i,
-        fn(a, b, c, d, e, f, g, h, i) { (a, b, c, d, e, f, g, h, i) },
-      ),
-    )
+  let l_tuple <- and_then(
+    tuple9(
+      fuzzer_a,
+      fuzzer_b,
+      fuzzer_c,
+      fuzzer_d,
+      fuzzer_e,
+      fuzzer_f,
+      fuzzer_g,
+      fuzzer_h,
+      fuzzer_i,
+    ),
+  )
+  let r_tuple <- and_then(
+    map9(
+      fuzzer_a,
+      fuzzer_b,
+      fuzzer_c,
+      fuzzer_d,
+      fuzzer_e,
+      fuzzer_f,
+      fuzzer_g,
+      fuzzer_h,
+      fuzzer_i,
+      fn(a, b, c, d, e, f, g, h, i) { (a, b, c, d, e, f, g, h, i) },
+    ),
+  )
 
   constant(l_tuple == r_tuple)
 }

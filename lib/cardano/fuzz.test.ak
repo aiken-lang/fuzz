@@ -111,8 +111,7 @@ const arbitrary_withdrawals =
   cardano.withdrawals_with(cardano.credential(), fn(_) { fuzz.constant(1) })
 
 test prop_withdrawals_with_in_order(withdrawals via arbitrary_withdrawals) {
-  let sorted =
-    withdrawals
-      |> list.sort(fn(left, right) { credential.compare(left.1st, right.1st) })
+  let sorted = withdrawals
+    |> list.sort(fn(left, right) { credential.compare(left.1st, right.1st) })
   sorted == withdrawals
 }
