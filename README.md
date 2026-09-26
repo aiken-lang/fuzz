@@ -15,16 +15,17 @@ It provides many useful primitives for writing and composing arbitrary generator
 ## Installation
 
 ```
-aiken add aiken-lang/fuzz --version v2
+aiken add aiken-lang/fuzz --version v3
 ```
 
 ## Compatibility
 
-aiken's version | fuzz's version(s)
----             | ---
-$>=$ `v1.1.15`  | `2.2.0`
-$>=$ `v1.1.13`  | `2.1.1`, `2.1.0`
-$>=$ `v1.1.0`   | `1.0.0`
+aiken's version                    | fuzz's version(s)
+---                                | ---
+$\ge$ `v1.1.24`                    | `3.0.0`
+$\ge$ `v1.1.15` && $\le$ `v1.1.23` | `2.2.0`
+$\ge$ `v1.1.13` && $\le$ `v1.1.14` | `2.1.1`, `2.1.0`
+$\ge$ `v1.1.0`  && $\le$ `v1.1.12` | `1.0.0`
 
 ## Getting started
 
@@ -32,7 +33,7 @@ First, make sure you have the [Aiken's user manual about tests](https://aiken-la
 
 In many situations, you can use primitives from this library out-of-the-box, composing them inline when necessary. For example, if you need a non-empty list of values, you can simply write:
 
-```
+```aiken
 use aiken/fuzz
 
 test my_prop(xs via fuzz.list_between(fuzz.int(), 1, 10)) {
